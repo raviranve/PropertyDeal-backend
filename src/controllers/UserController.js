@@ -1,13 +1,14 @@
 const User = require("../models/User");
-
+const bcrypt = require("bcryptjs");
 // Create User with Profile Image Upload
 const createUser = async (req, res) => {
   try {
-    const { fullname, email, password, confirmPassword, mobile } = req.body;
-    const img = req.file ? req.file.path : null; // Save uploaded image path
+    let { fullname, email, password, confirmPassword, mobile, profileImg } = req.body;    
+    profileImg = req.file ? req.file.filename : null; // Save uploaded image path
 
     // Save user
-    const newUser = new User({ fullname, email, img, password, confirmPassword, mobile });
+    const newUser = new User({ fullname, email, profileImg, password, confirmPassword, mobile });
+    
     await newUser.save();
 
     res.status(201).json({
@@ -28,10 +29,11 @@ const createUser = async (req, res) => {
 const login = async (req, res) => {
   try {
       const { email, password } = req.body;
-
+    
       const user = await User.findOne({ email });
       if (!user) return res.status(400).json({status: false, message: "Invalid credentials" });
       const isMatch = await bcrypt.compare(password, user.password);
+      
       if (!isMatch) return res.status(400).json({status: false, message: "Invalid credentials" });
       // Generate JWT token using the method in userSchema
       const token = user.generateAuthToken();
