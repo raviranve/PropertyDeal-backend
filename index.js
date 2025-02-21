@@ -5,8 +5,8 @@ const cors = require('cors');
 dotenv.config();
 const connectdb = require("./src/config/db");
 const cookieParser = require("cookie-parser");
-const userRoutes = require("./src/routes/UserRoutes");
-
+const userRoutes = require("./src/routes/userRoutes");
+const propertyRoutes = require("./src/routes/PropertyRoutes")
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 
@@ -32,6 +32,7 @@ app.use((err, req, res, next) => {
   
 
 app.use(userRoutes);
+app.use(propertyRoutes);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

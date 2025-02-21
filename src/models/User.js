@@ -3,13 +3,21 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const userSchema = new mongoose.Schema({
-    fullname: { type: String, required: true },
+    // fullname: { type: String, required: true },
+    fullname: { type: String, required: function() { return !this.isGoogleUser; } }, 
     email: { type: String, required: true, unique: true },
     profileImg: { type: String },
-    password: { type: String, required: true },
-    confirmPassword: { type: String, required: true },
-    mobile: { type: String, required: true, unique: true },
-    role: { type: String, default: "User" }
+    password: { type: String, required: function() { return !this.isGoogleUser; } }, 
+    mobile: { type: String, required: function() { return !this.isGoogleUser; } },
+    // password: { type: String, required: true },
+    // confirmPassword: { type: String, required: true },
+    // mobile: { type: String, required: true, unique: true },
+    role: { type: String, default: "User" },
+    otp: {type: String},
+    otpExpire: {type: Date},
+    isGoogleUser: { type: Boolean, default: false },  // 🔹  For Google login users
+    isVerified: { type: Boolean, default: false }, // 🔹  // User must verify OTP before login
+    googleId: { type: String, unique: true, sparse: true },  // Store Google OAuth ID
 }, { timestamps: true });
 
 // Hash password before saving

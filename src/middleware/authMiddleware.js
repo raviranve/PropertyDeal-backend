@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
 //   const token = req.header("Authorization").replace("Bearer ", "");
     const token = req.cookies.token; // Get token from cookies
 
@@ -12,7 +13,12 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const user = await User.findById(decoded.id);
+    // console.log(user, "user");
+    
+    req.user = user;
+
+    
     next();
   } catch (error) {
     res.status(400).json({ status: "error", message: "Invalid token." });
@@ -22,8 +28,10 @@ const authMiddleware = (req, res, next) => {
 
 // Role-Based Authorization Middleware
 const authorizeRoles = (...roles) => {
-    return (req, res, next) => {
-      if (!roles.includes(req.user.role)) {
+  return (req, res, next) => {
+    console.log(req.data);
+    if (!roles.includes(req.user.role)) {
+        
         return res.status(403).json({
           status: "error",
           message: `Access denied. Required role: ${roles.join(", ")}`,
