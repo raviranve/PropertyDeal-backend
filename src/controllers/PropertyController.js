@@ -20,7 +20,7 @@ const createProperty = async (req, res) => {
     // ✅ Convert city name to ObjectId
     const cityData = await City.findOne({ name: location.city });
     if (!cityData) {
-      return res.status(404).json({ status: "error", message: "City not found" });
+      return res.status(404).json({ status: "error", message: "City  not found" });
     }
     const imagePaths = req.files.map((file) => file.filename);
 
