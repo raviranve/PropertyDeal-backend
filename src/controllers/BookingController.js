@@ -1,9 +1,6 @@
-
 const Booking = require('../models/Booking');
+const sendNotification = require("../utils/notification");
 
-
-
-// Create Booking with Validation
 exports.createBooking = async (req, res) => {
     try {
         const { name, mobile, propertyId, dateTime, message } = req.body;
@@ -11,6 +8,13 @@ exports.createBooking = async (req, res) => {
         const newBooking = new Booking({ name, mobile, propertyId, dateTime, message });
         await newBooking.save();
 
+        // Get io instance from app
+        const io = req.app.get("socketio");
+        // Emit the booking creation event to all connected clients
+        sendNotification(io, "newBookingNotification", {
+            message: `${name} booked the property`,
+            data: newBooking,
+        });
         res.status(201).json({ status: true, message: "Booking created successfully", data: newBooking });
     } catch (error) {
         res.status(500).json({ status: false, message: "Server error", error: error.message });
