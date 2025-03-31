@@ -1,5 +1,5 @@
 const Booking = require('../models/Booking');
-const sendNotification = require("../utils/notification");
+const sendNotification = require("../utils/sendNotification");
 
 exports.createBooking = async (req, res) => {
     try {
