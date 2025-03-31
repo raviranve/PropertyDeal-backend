@@ -17,26 +17,6 @@ exports.createBooking = async (req, res) => {
     }
 };
 
-
-// Get All Bookings with Search & Filters
-// exports.getAllBookings = async (req, res) => {
-//     try {
-//         const { status, propertyId, dateFrom, dateTo } = req.query;
-//         let filters = {};
-
-//         if (status) filters.status = status;
-//         if (propertyId) filters.propertyId = propertyId;
-//         if (dateFrom && dateTo) {
-//             filters.dateTime = { $gte: new Date(dateFrom), $lte: new Date(dateTo) };
-//         }
-
-//         const bookings = await Booking.find(filters).populate('propertyId', 'name location');
-//         res.status(200).json({ status: true, message: "Bookings fetched successfully", data: bookings });
-//     } catch (error) {
-//         res.status(500).json({ status: false, message: "Server error", error: error.message });
-//     }
-// });
-
 // Get All Bookings with Pagination
 exports.getAllBookings = async (req, res) => {
     try {
