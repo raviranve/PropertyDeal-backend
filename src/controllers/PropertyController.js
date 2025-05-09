@@ -3,26 +3,44 @@ const City = require("../models/City");
 
 // ✅ CREATE PROPERTY
 const createProperty = async (req, res) => {
+  console.log(req.body, "req.body");
   try {
     const {
       title,
       description,
       price,
       propertyType,
-      location,
       size,
       bedrooms,
       bathrooms,
       facilities,
-      owner,
+      ["owner.name"]: ownerName,
+      ["location.city"]: locationCity,
+      ["location.address"]: locationAddress,
     } = req.body;
+
+    const location = {
+      city: locationCity,
+      address: locationAddress,
+    };
+
+    const owner = {
+      name: ownerName,
+    };
 
     // ✅ Convert city name to ObjectId
     const cityData = await City.findOne({ name: location.city });
     if (!cityData) {
-      return res.status(404).json({ status: "error", message: "City  not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "City  not found" });
     }
-    const imagePaths = req.files.map((file) => file.filename);
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    const imageUrls = req.files.map(
+      (file) => `${baseUrl}/uploads/${file.filename}`
+    );
 
     // ✅ Create the property with the correct ObjectIds
     const newProperty = new Property({
@@ -32,7 +50,7 @@ const createProperty = async (req, res) => {
       propertyType,
       location: {
         address: location.address,
-        city: cityData._id,    // Store ObjectId, not string
+        city: cityData, // Store ObjectId, not string
         // state: stateData._id,  // Store ObjectId
         // country: countryData._id, // Store ObjectId
       },
@@ -40,7 +58,7 @@ const createProperty = async (req, res) => {
       bedrooms,
       bathrooms,
       facilities: facilities || ["Wifi", "RO", "Park"],
-      propertyImages:imagePaths,
+      propertyImages: imageUrls,
       owner,
     });
 
@@ -122,12 +140,17 @@ const updateProperty = async (req, res) => {
     if (updateData.location?.city) {
       const cityData = await City.findOne({ name: updateData.location.city });
       if (!cityData) {
-        return res.status(404).json({ status: "error", message: `City '${updateData.location.city}' not found` });
+        return res.status(404).json({
+          status: "error",
+          message: `City '${updateData.location.city}' not found`,
+        });
       }
       updateData.location.city = cityData._id;
     }
 
-     const updatedProperty = await Property.findByIdAndUpdate(id, updateData, { new: true });
+    const updatedProperty = await Property.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
 
     if (!updatedProperty) {
       return res
