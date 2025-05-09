@@ -5,10 +5,10 @@ const PropertyController = require("../controllers/PropertyController");
 const { accessTokenVerify, authorizeRoles } = require("../middleware/authMiddleware");
 const {validateProperty} = require("../middleware/useValidations")
 
-router.post("/create-properties", upload.array("propertyImages", 5), accessTokenVerify, validateProperty, authorizeRoles("admin, seller"), PropertyController.createProperty);
-router.get("/get-properties", accessTokenVerify, validateProperty, PropertyController.getAllProperties);
-router.get("/get-property/:id",accessTokenVerify, validateProperty, PropertyController.getPropertyById);
+router.post("/create-properties", upload.array("propertyImages", 5), validateProperty,accessTokenVerify,authorizeRoles("admin, seller"), PropertyController.createProperty);
+router.get("/get-properties", accessTokenVerify, PropertyController.getAllProperties);
+router.get("/get-property/:id",accessTokenVerify, PropertyController.getPropertyById);
 router.patch("/update-property/:id",accessTokenVerify, authorizeRoles("admin, seller"),validateProperty, PropertyController.updateProperty);
-router.delete("/delete-property/:id",accessTokenVerify, validateProperty,authorizeRoles("admin, seller"),PropertyController.deleteProperty);
+router.delete("/delete-property/:id",accessTokenVerify,authorizeRoles("admin, seller"),PropertyController.deleteProperty);
 
 module.exports = router;

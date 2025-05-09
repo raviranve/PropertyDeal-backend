@@ -10,7 +10,6 @@ const RefreshToken = require("../models/RefreshToken");
 // Create User 
 exports.signup = async (req, res) => {
   try {
-    // const { fullname, email, password, mobile ,role} = req.body;
     console.log(req.body);
     let { fullname, email, password, mobile,role, profileImg } = req.body;
   
@@ -166,6 +165,7 @@ exports.generateOtp = async (req, res) => {
         status: "Success",
         message: "OTP sent successfully.",
         data: {
+          otp:otp,
           otp_send: true,
           email:email
         }
@@ -176,6 +176,7 @@ exports.generateOtp = async (req, res) => {
         status: "Success",
         message: "Password reset OTP sent successfully.",
         data: {
+          otp:otp,
           otp_send: true,
           email:email
         }
@@ -201,70 +202,159 @@ exports.generateOtp = async (req, res) => {
 
 //login
 
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, mobile, password } = req.body;
+
+//     // Find user by email or mobile
+//     const user = await User.findOne({ $or: [{ email }, { mobile }] });
+
+//     if (!user) {
+//       return res.status(400).json({ message: "User not found" , error: { message: "Invalid credentials" },
+//       });
+//     }
+
+//     // Check password
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) {
+//       return res.status(400).json({status: "Failed", message: "Invalid credentials", 
+//         error: { message: "Invalid credentials" }
+//       });
+//     }
+
+//     // Generate  accessToken & refreshToken
+//     const {accessToken,refreshToken} = user.generateAuthToken();
+//     const refreshTokenSave = new RefreshToken({
+//       token: refreshToken,
+//       userId: user._id,
+//       expiresAt: 7 * 24 * 60 * 60 * 1000, // 7 days
+//     });
+//     await refreshTokenSave.save();
+//     // Set token in HTTP-only cookie
+//     res.cookie("accessToken", accessToken, {
+//       httpOnly: false,
+//       //secure: process.env.NODE_ENV,
+//       secure: false,
+//       sameSite: "None",
+//       maxAge: 2 * 60 * 60 * 1000, // 2 day
+//     });
+//      // Set token in HTTP-only cookie
+//      res.cookie("refreshToken", refreshToken, {
+//       httpOnly: true,
+//      // secure: process.env.NODE_ENV,
+//       secure: false,
+//       sameSite: "strict",
+//       maxAge: 7 * 60 * 60 * 1000, // 7 day
+//     });
+   
+//     res.status(201).json({ 
+//       status: "Success",
+//       message: "User logged in successfully.",
+//        data: {
+//         user_id: user._id,
+//         full_name: user.fullname,
+//         email: user.email,
+//         role:user.role,
+//         accessToken:accessToken,
+//         refreshToken:refreshToken,
+//         isVerified: user.isVerified
+//     }});  
+
+//   } catch (error) {
+//     res.status(500).json({
+//       status: "Failed",
+//       message: error.message,
+//       error: { message: "User Login failed" }
+//     });
+//   }
+// };
+
+
 exports.login = async (req, res) => {
   try {
     const { email, mobile, password } = req.body;
 
-    // Find user by email or mobile
     const user = await User.findOne({ $or: [{ email }, { mobile }] });
-
     if (!user) {
-      return res.status(400).json({ message: "User not found" , error: { message: "Invalid credentials" },
+      return res.status(400).json({
+        status: "Failed",
+        message: "User not found",
+        error: { message: "Invalid credentials" },
       });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({status: "Failed", message: "Invalid credentials", 
-        error: { message: "Invalid credentials" }
+      return res.status(400).json({
+        status: "Failed",
+        message: "Invalid credentials",
+        error: { message: "Invalid credentials" },
       });
     }
 
-    // Generate  accessToken & refreshToken
-    const {accessToken,refreshToken} = user.generateAuthToken();
-    const refreshTokenSave = new RefreshToken({
-      token: refreshToken,
-      userId: user._id,
-      expiresAt: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-    await refreshTokenSave.save();
-    // Set token in HTTP-only cookie
+    // Check if refresh token already exists and is still valid
+    let refreshTokenEntry = await RefreshToken.findOne({ userId: user._id });
+    let refreshToken;
+
+    const now = new Date();
+    if (refreshTokenEntry && refreshTokenEntry.expiresAt > now) {
+      refreshToken = refreshTokenEntry.token;
+    } else {
+      // Remove old token if  and create a new one and update with token key in db
+      if (refreshTokenEntry) {
+        await RefreshToken.deleteOne({ userId: user._id });
+      }
+    
+      const tokens = user.generateAuthToken();  // ✅ generate once
+      refreshToken = tokens.refreshToken;
+    
+      refreshTokenEntry = new RefreshToken({
+        token: refreshToken,
+        userId: user._id,
+        expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      });
+      await refreshTokenEntry.save();
+    }
+    // Set tokens in HTTP-only cookies    
+    const tokens = user.generateAuthToken(); 
+    const accessToken = tokens.accessToken;
     res.cookie("accessToken", accessToken, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV,
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
-     // Set token in HTTP-only cookie
-     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV,
-      sameSite: "strict",
-      maxAge: 7 * 60 * 60 * 1000, // 7 day
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "Strict",
+      maxAge: 3 * 24 * 60 * 60 * 1000,
     });
-   
-    res.status(201).json({ 
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
       status: "Success",
       message: "User logged in successfully.",
-       data: {
+      data: {
         user_id: user._id,
         full_name: user.fullname,
         email: user.email,
-        role:user.role,
-        accessToken:accessToken,
-        refreshToken:refreshToken,
-        isVerified: user.isVerified
-    }});  
+        role: user.role,
+        accessToken,
+        refreshToken,
+        isVerified: user.isVerified,
+      }
+    });
 
   } catch (error) {
     res.status(500).json({
       status: "Failed",
       message: error.message,
-      error: { message: "User Login failed" }
+      error: { message: "User login failed" }
     });
   }
 };
+
 //  **Reset Password**
 
 exports.resetPassword = async (req, res) => {
@@ -293,70 +383,87 @@ exports.resetPassword = async (req, res) => {
 //  **Google Auth**
 exports.googleAuth = async (req, res) => {
   try {
-    const { tokenId, role } = req.body; 
+    const { tokenId, role } = req.body;
 
     const ticket = await client.verifyIdToken({
       idToken: tokenId,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
-    const {googleId, email, name } = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = ticket.getPayload();
 
     let user = await User.findOne({ email });
-    console.log(user)
+
+    // 🆕 New user
     if (!user) {
-      // If role is not provided, ask user to select a role
       if (!role) {
         return res.status(400).json({
           error: true,
-          message: "New user detected. Please provide a role.",
+          message: "New user detected. Please select a valid role.",
         });
       }
 
-      // Create a new user with selected role
       user = await User.create({
         fullname: name,
         googleId,
         email,
-        role,
-        isVerified: user.isVerified,
-        isGoogleUser: true
+        role: role.toLowerCase(),
+        isVerified: true,
+        isGoogleUser: true,
+        profileImg: picture || null,
       });
+    } else {
+      // Existing user but no role (edge case)
+      if (!user.role) {
+        if (!role) {
+          return res.status(400).json({
+            error: true,
+            message: "Please select a role to complete google login.",
+          });
+        }
+        user.role = role.toLowerCase();
+        await user.save();
+      }
+      // ✅ If user has a role already, ignore role in request
     }
-    // Generate  accessToken & refreshToken 
+
+    // Generate tokens
     const { accessToken, refreshToken } = user.generateAuthToken();
-    const refreshTokenSave = new RefreshToken({
+
+    await new RefreshToken({
       token: refreshToken,
       userId: user._id,
-      expiresAt: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-    await refreshTokenSave.save();
-    // Set token in HTTP-only cookie
+      expiresAt: 7 * 24 * 60 * 60 * 1000,
+    }).save();
+
     res.cookie("accessToken", accessToken, {
       httpOnly: false,
-      secure: process.env.NODE_ENV,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 24 * 60 * 60 * 1000,
     });
-     // Set token in HTTP-only cookie
-     res.cookie("refreshToken", refreshToken, {
+
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV,
-      sameSite: "strict",
-      maxAge: 7 * 60 * 60 * 1000, // 7 day
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
-      message: "User create successfully",
-      data: { 
-        isSignup:true,
-        isVerified:user.isVerified,
-        isGoogleUser:true ,
-        accessToken:accessToken,
-        refreshToken:refreshToken, 
+      message: "Google login successful",
+      data: {
+        accessToken,
+        refreshToken,
+        isVerified: user.isVerified,
+        isGoogleUser: user.isGoogleUser,
+        role:user.role,
+        userId: user._id,
+        email: user.email
       },
     });
   } catch (error) {
+    console.error("Google login error:", error);
     res.status(500).json({ error: true, message: error.message });
   }
 };
@@ -364,7 +471,7 @@ exports.googleAuth = async (req, res) => {
 // Get All Users
 exports.getUsers = async (req, res) => {
   try {
-    let { page = 1, limit = 10 } = req.query; // Default page = 1, limit = 10
+    let { page, limit } = req.query; // Default page = 1, limit = 10
     page = parseInt(page);
     limit = parseInt(limit);
     const totalUsers = await User.countDocuments();

@@ -20,9 +20,9 @@ router.post("/verify-otp", validateVerifyOTP, userController.verifyOTP);
 router.post("/reset-password", validateResetPassword, userController.resetPassword);
 
 // Secure routes with authentication
-router.get("/users", accessTokenVerify, authorizeRoles("Admin"), userController.getUsers);
-router.get("/users/:id", accessTokenVerify, authorizeRoles("Admin", "Seller", "Buyer"), userController.getUserById);
-router.patch("/users/:id", accessTokenVerify, authorizeRoles("Admin", "Seller"), userController.updateUser);
-router.delete("/users/:id", accessTokenVerify, authorizeRoles("Admin"), userController.deleteUser);
+router.get("/users", accessTokenVerify, authorizeRoles("admin"), userController.getUsers);
+router.get("/users/:id", accessTokenVerify, authorizeRoles("admin", "seller", "buyer"), userController.getUserById);
+router.patch("/users/:id", accessTokenVerify, authorizeRoles("admin", "seller"), userController.updateUser);
+router.delete("/users/:id", accessTokenVerify, authorizeRoles("admin"), userController.deleteUser);
 
 module.exports = router;

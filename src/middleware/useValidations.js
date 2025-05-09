@@ -5,9 +5,7 @@ const User = require("../models/User");
 
 
 const handleValidationErrors = (req, res, next) => {
-    console.log("Received request body:", req.body);
     const errors = validationResult(req);
-    console.log("Errors:", errors);
     if (!errors.isEmpty()) {
         const firstError = errors.array()[0]; 
 

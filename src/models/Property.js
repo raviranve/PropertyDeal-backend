@@ -7,7 +7,6 @@ const propertySchema = new mongoose.Schema({
   propertyType: {
     type: String,
     enum: ["Apartment", "House", "Villa", "Commercial"],
-    required: true,
   },
   location: {
     address: { type: String, required: true },
@@ -24,7 +23,7 @@ const propertySchema = new mongoose.Schema({
   size: { type: Number },
   bedrooms: { type: Number, required: true },
   bathrooms: { type: Number, required: true },
-  facility: [{ type: String, default: ["Wifi", "RO", "Park"] }],
+  facilities: { type: [String], default: ["Wifi", "RO", "Park"] },
   propertyImages: [{ type: String }],
   owner: {
     name: { type: String, required: true },

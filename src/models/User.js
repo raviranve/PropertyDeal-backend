@@ -10,12 +10,14 @@ const userSchema = new mongoose.Schema({
         required: true, 
         unique: true,
     },
-    password: { type: String, required: true },
-    mobile: {
-        type: String,
-        required: true,
-        unique: true,
-    },
+    // password: { type: String, required: true },
+    // mobile: {
+    //     type: String,
+    //     required: true,
+    //     unique: true,
+    // },
+    password: { type: String, required: function() { return !this.isGoogleUser; } },  // Only required if it's not a Google user
+    mobile: { type: String, required: function() { return !this.isGoogleUser; } },  
     role: { 
         type: String, 
         enum: ['seller', 'buyer', 'admin'],  
@@ -37,18 +39,30 @@ userSchema.pre("save", async function (next) {
 });
 
 // Generate JWT Token
-userSchema.methods.generateAuthToken = function () {
-    const accessToken = jwt.sign(
-      { id: this._id, role: this.role },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "10m" }
-    );
-    const refreshToken = jwt.sign( { 
-        id: this.id, role: this.role },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: "7d" }
-    )
-    return {accessToken,refreshToken};
+// userSchema.methods.generateAuthToken = function () {
+//     const accessToken = jwt.sign(
+//       { id: this._id.toString() },
+//       process.env.ACCESS_TOKEN_SECRET,
+//       { expiresIn: "4d" }
+//     );
+    
+//     const refreshToken = jwt.sign( 
+//         { id: this._id.toString()},
+//         process.env.REFRESH_TOKEN_SECRET,
+//         { expiresIn: "7d" }
+//     );
+    
+//     return { accessToken, refreshToken };
+// };
+
+userSchema.methods.generateAuthToken = function() {
+    const payload = { _id: this._id.toString() };
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '3d' });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+  
+    return { accessToken, refreshToken }; // Ensure this is an object with both tokens
 };
+  
+  
   
 module.exports = mongoose.model("User", userSchema);
