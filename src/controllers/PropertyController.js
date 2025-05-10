@@ -3,7 +3,6 @@ const City = require("../models/City");
 
 // ✅ CREATE PROPERTY
 const createProperty = async (req, res) => {
-  console.log(req.body, "req.body");
   try {
     const {
       title,
@@ -50,14 +49,12 @@ const createProperty = async (req, res) => {
       propertyType,
       location: {
         address: location.address,
-        city: cityData, // Store ObjectId, not string
-        // state: stateData._id,  // Store ObjectId
-        // country: countryData._id, // Store ObjectId
+        city: cityData, //we can  Store ObjectId
       },
       size,
       bedrooms,
       bathrooms,
-      facilities: facilities || ["Wifi", "RO", "Park"],
+      facilities: facilities,
       propertyImages: imageUrls,
       owner,
     });
@@ -70,7 +67,6 @@ const createProperty = async (req, res) => {
       data: savedProperty,
     });
   } catch (error) {
-    console.error("Error creating property:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };

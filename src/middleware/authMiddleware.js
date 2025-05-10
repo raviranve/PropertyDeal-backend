@@ -27,11 +27,6 @@ const accessTokenVerify = async (req, res, next) => {
     }
 
     req.user = user;
-
-      console.log("Decoded:", decoded);
-      console.log("User:", req.user);
-      console.log("Token:", token);
-
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
