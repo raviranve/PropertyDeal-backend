@@ -12,6 +12,8 @@ const userRoutes = require("./src/routes/UserRoutes");
 const propertyRoutes = require("./src/routes/PropertyRoutes");
 const enquiryRoutes = require("./src/routes/EnquiryRoutes");
 const bookingRoutes = require("./src/routes/BookingRoutes");
+const cityRoutes = require("./src/routes/CityRoutes");
+
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
@@ -93,6 +95,7 @@ app.use("/api/auth", userRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/enquiries", enquiryRoutes); 
+app.use("/api/cities", cityRoutes); 
 
 // Default Route
 app.get("/", (req, res) => {

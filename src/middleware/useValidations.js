@@ -161,53 +161,6 @@ const validateBooking = [
   handleValidationErrors,
 ];
 
-// const validateProperty = [
-//   body("title").notEmpty().withMessage("Title is required."),
-//   body("price")
-//     .isNumeric()
-//     .withMessage("Price must be a number.")
-//     .notEmpty()
-//     .withMessage("Price is required."),
-//   body("propertyType")
-//     .isIn(["Apartment", "House", "Villa", "Commercial"])
-//     .withMessage("Invalid property type."),
-//   body("location.address").notEmpty().withMessage("Address is required."),
-//   body("location.city").notEmpty().withMessage("City is required."),
-//   body("size").optional().isNumeric().withMessage("Size must be a number."),
-//   body("bedrooms")
-//     .isInt({ min: 1 })
-//     .withMessage("Bedrooms must be at least 1.")
-//     .notEmpty()
-//     .withMessage("Bedrooms are required."),
-//   body("bathrooms")
-//     .isInt({ min: 1 })
-//     .withMessage("Bathrooms must be at least 1.")
-//     .notEmpty()
-//     .withMessage("Bathrooms are required."),
-//   body("facility")
-//     .optional()
-//     .isArray()
-//     .withMessage("Facility must be an array."),
-//   body("images").optional().isArray().withMessage("Images must be an array."),
-//   body("owner.name").notEmpty().withMessage("Owner name is required."),
-//   body("status")
-//     .optional()
-//     .isIn(["Available", "Sold", "Rented"])
-//     .withMessage("Invalid status."),
-//   body("averageRating")
-//     .optional()
-//     .isFloat({ min: 0, max: 5 })
-//     .withMessage("Average rating must be between 0 and 5."),
-
-//     (req, res, next) => {
-//       const errors = validationResult(req);
-//       if (!errors.isEmpty()) {
-//         return res.status(400).json({ errors: errors.array() });
-//       }
-//     },
-//     handleValidationErrors
-// ];
-
 const validateProperty = [
     body("title").notEmpty().withMessage("Title is required."),
     body("price")
@@ -226,9 +179,8 @@ const validateProperty = [
       .notEmpty().withMessage("Bathrooms are required.")
       .isInt({ min: 1 }).withMessage("Bathrooms must be at least 1."),
     body("facilities")
-      .optional()
-      .isArray()
-      .withMessage("Facilities must be an array."),
+    .optional()
+    .isString().withMessage("Facilities must be pass as comma seprate string."),
     body("images")
       .optional()
       .isArray()
@@ -268,8 +220,59 @@ const validateEnquiry = [
     handleValidationErrors
 ];
 
+const validateUpdateProperty = [
+  body("title").notEmpty().withMessage("Title is required."),
+
+  body("price")
+    .notEmpty().withMessage("Price is required.")
+    .isNumeric().withMessage("Price must be a number."),
+
+  body("propertyType")
+    .notEmpty().withMessage("Property type is required.")
+    .isIn(["Apartment", "House", "Villa", "Commercial"])
+    .withMessage("Invalid property type."),
+
+  body("location.address")
+    .notEmpty().withMessage("Address is required."),
+
+  body("location.city")
+    .notEmpty().withMessage("City is required."),
+
+  body("size")
+    .optional()
+    .isNumeric().withMessage("Size must be a number."),
+
+  body("bedrooms")
+    .notEmpty().withMessage("Bedrooms are required.")
+    .isInt({ min: 1 }).withMessage("Bedrooms must be at least 1."),
+
+  body("bathrooms")
+    .notEmpty().withMessage("Bathrooms are required.")
+    .isInt({ min: 1 }).withMessage("Bathrooms must be at least 1."),
+
+  body("facilities")
+    .optional()
+    .isString().withMessage("Facilities must be pass as comma seprate string."),
+
+  body("propertyImages")
+    .optional()
+    .isArray().withMessage("Images must be an array."),
+
+  body("owner.name")
+    .notEmpty().withMessage("Owner name is required."),
+
+  body("status")
+    .optional()
+    .isIn(["Available", "Sold", "Rented"])
+    .withMessage("Invalid status."),
+
+  body("averageRating")
+    .optional()
+    .isFloat({ min: 0, max: 5 })
+    .withMessage("Average rating must be between 0 and 5."),
+];
 
 module.exports = {
-  validateSignup, validateLogin, validateProperty,
+  validateSignup, validateLogin, validateProperty,validateUpdateProperty,
   validateVerifyOTP,generateOTP, validateResetPassword,validateBooking,validateEnquiry
 };

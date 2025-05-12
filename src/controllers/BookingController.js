@@ -3,9 +3,9 @@ const sendNotification = require("../utils/sendNotification");
 
 exports.createBooking = async (req, res) => {
     try {
-        const { name, mobile, propertyId, dateTime, message } = req.body;
+        const { name, mobile, propertyId,userId, dateTime, message } = req.body;
         
-        const newBooking = new Booking({ name, mobile, propertyId, dateTime, message });
+        const newBooking = new Booking({ name, mobile, propertyId,userId, dateTime, message });
         await newBooking.save();
 
         // Get io instance from app
@@ -24,7 +24,7 @@ exports.createBooking = async (req, res) => {
 // Get All Bookings with Pagination
 exports.getAllBookings = async (req, res) => {
     try {
-        let { page = 1, limit = 10 } = req.query;
+        let { page, limit} = req.query;
 
         page = parseInt(page);
         limit = parseInt(limit);
@@ -99,3 +99,4 @@ exports.deleteBooking = async (req, res) => {
         res.status(500).json({ status: false, message: "Server error", error: error.message });
     }
 };
+

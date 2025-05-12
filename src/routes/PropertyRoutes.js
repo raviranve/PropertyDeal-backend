@@ -6,7 +6,7 @@ const {
   accessTokenVerify,
   authorizeRoles,
 } = require("../middleware/authMiddleware");
-const { validateProperty } = require("../middleware/useValidations");
+const { validateProperty,validateUpdateProperty } = require("../middleware/useValidations");
 
 router.post(
   "/create-properties",
@@ -28,15 +28,15 @@ router.get(
 );
 router.patch(
   "/update-property/:id",
+  upload.array("propertyImages", 5),
   accessTokenVerify,
   authorizeRoles("admin", "seller"),
-  validateProperty,
+  validateUpdateProperty,
   PropertyController.updateProperty
 );
 router.delete(
   "/delete-property/:id",
   accessTokenVerify,
-  validateProperty,
   authorizeRoles("admin", "seller"),
   PropertyController.deleteProperty
 );

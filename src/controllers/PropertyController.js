@@ -14,21 +14,12 @@ const createProperty = async (req, res) => {
       bathrooms,
       facilities,
       ["owner.name"]: ownerName,
-      ["location.city"]: locationCity,
-      ["location.address"]: locationAddress,
+      ["location.city"]: cityName,
+      ["location.address"]: address,
     } = req.body;
 
-    const location = {
-      city: locationCity,
-      address: locationAddress,
-    };
-
-    const owner = {
-      name: ownerName,
-    };
-
     // ✅ Convert city name to ObjectId
-    const cityData = await City.findOne({ name: location.city });
+    const cityData = await City.findOne({ name: cityName});
     if (!cityData) {
       return res
         .status(404)
@@ -40,23 +31,25 @@ const createProperty = async (req, res) => {
     const imageUrls = req.files.map(
       (file) => `${baseUrl}/uploads/${file.filename}`
     );
-
+    const facilitiesArr =  facilities.split(",").map((facility) => facility.trim());
     // ✅ Create the property with the correct ObjectIds
     const newProperty = new Property({
       title,
       description,
       price,
       propertyType,
-      location: {
-        address: location.address,
-        city: cityData, //we can  Store ObjectId
-      },
       size,
       bedrooms,
       bathrooms,
-      facilities: facilities,
+      facilities:facilitiesArr,
       propertyImages: imageUrls,
-      owner,
+      location: {
+        address: address,
+        city: cityData._id,
+      },
+      owner: {
+        name: ownerName,
+      },
     });
 
     const savedProperty = await newProperty.save();
@@ -74,17 +67,12 @@ const createProperty = async (req, res) => {
 // ✅ GET ALL PROPERTIES WITH PAGINATION & FILTERS
 const getAllProperties = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      minPrice,
-      maxPrice,
-      propertyType,
-    } = req.query;
+    const { page = 1, limit = 10, propertyType } = req.query;
 
     let filter = {};
-    if (minPrice && maxPrice) filter.price = { $gte: minPrice, $lte: maxPrice };
     if (propertyType) filter.propertyType = propertyType;
+
+    const totalCount = await Property.countDocuments(filter); // Use filter here
 
     const properties = await Property.find(filter)
       .populate("location.city location.state location.country")
@@ -95,12 +83,17 @@ const getAllProperties = async (req, res) => {
       status: "success",
       message: "Properties fetched successfully",
       data: properties,
+      totalProperties: totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit), 
+      hasNextPage: page * limit < totalCount, 
+      hasPrevPage: page > 1,
     });
   } catch (error) {
-    console.error("Error fetching properties:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
+
 
 // ✅ GET SINGLE PROPERTY
 const getPropertyById = async (req, res) => {
@@ -126,48 +119,64 @@ const getPropertyById = async (req, res) => {
 
 // ✅ UPDATE PROPERTY
 const updateProperty = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ status: "error", message: "Property ID is required" });
+  }
   try {
-    const { id } = req.params;
-    const updateData = req.body;
+    const location = JSON.parse(req.body.location);
+    const owner = JSON.parse(req.body.owner);
+    const facilitiesArr =  JSON.parse(req.body.facilities);
 
-    console.log("Received update data:", updateData); // Debugging
-
-    // ✅ Convert city name to ObjectId (if provided)
-    if (updateData.location?.city) {
-      const cityData = await City.findOne({ name: updateData.location.city });
-      if (!cityData) {
-        return res.status(404).json({
-          status: "error",
-          message: `City '${updateData.location.city}' not found`,
-        });
-      }
-      updateData.location.city = cityData._id;
+    const cityData = await City.findById(location.city);
+    if (!cityData) {
+      return res.status(404).json({ status: "error", message: "City not found" });
+    }    
+    const updatedData = {
+      title: req.body.title,
+      description: req.body.description,
+      price: req.body.price,
+      propertyType: req.body.propertyType,
+      size: req.body.size,
+      bedrooms: req.body.bedrooms,
+      bathrooms: req.body.bathrooms,
+      location,
+      owner,
+      facilities: facilitiesArr,
+    };
+    // Handle file uploads
+    if (req.files && req.files.length > 0) {
+      updatedData.propertyImages = req.files.map(
+        file => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`
+      );
+    } else if (req.body.existingImages) {
+      const existingImages = JSON.parse(req.body.existingImages);
+      updatedData.propertyImages = existingImages;
     }
 
-    const updatedProperty = await Property.findByIdAndUpdate(id, updateData, {
-      new: true,
-    });
+    const updatedProperty = await Property.findByIdAndUpdate(id, updatedData, { new: true });
 
-    if (!updatedProperty) {
-      return res
-        .status(404)
-        .json({ status: "error", message: "Property not found" });
-    }
     res.status(200).json({
-      status: "success",
-      message: "Property updated successfully",
+      status: 'success',
+      message: 'Property updated successfully',
       data: updatedProperty,
     });
   } catch (error) {
-    console.error("Error updating property:", error);
-    res.status(500).json({ status: "error", message: "Internal Server Error" });
+    console.error("Update error:", error);
+    res.status(500).json({ status: "error", message: "Update failed", error: error.message });
   }
 };
 
+
+
 // ✅ DELETE PROPERTY
 const deleteProperty = async (req, res) => {
+  const { id } = req.params;
+  if(!id){
+    return res.status(400).json({ status: "error", message: "Property ID is required" });
+  }
   try {
-    const deletedProperty = await Property.findByIdAndDelete(req.params.id);
+    const deletedProperty = await Property.findByIdAndDelete(id);
     if (!deletedProperty) {
       return res
         .status(404)

@@ -126,7 +126,6 @@ const refreshTokenVerify = async (req, res) => {
 // Role-Based Authorization Middleware
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
-    console.log('User role:', req.user.role); // Debugging
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         status: 'failed',
