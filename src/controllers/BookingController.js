@@ -129,7 +129,6 @@ exports.updateBooking = async (req, res) => {
 exports.updateBookingStatus = async (req, res) => {
   try {
     const { bookingId, status } = req.body; 
-
      const updatedBooking = await Booking.findByIdAndUpdate(
       bookingId,
       { status },
@@ -138,7 +137,7 @@ exports.updateBookingStatus = async (req, res) => {
     res.status(200).json({
       status: true,
       message: "Booking status updated successfully",
-      data: booking,
+      data: updatedBooking,
     });
   } catch (error) {
     res.status(500).json({

@@ -40,5 +40,11 @@ router.delete(
   authorizeRoles("admin", "seller"),
   PropertyController.deleteProperty
 );
+router.patch(
+  "/update-status",
+  accessTokenVerify,
+  authorizeRoles("admin"),
+  PropertyController.updatePropertyStatus,
+);
 
 module.exports = router;

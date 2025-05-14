@@ -9,5 +9,6 @@ router.get("/get-bookings", accessTokenVerify, BookingController.getAllBookings)
 router.get("/get-booking/:id",accessTokenVerify, BookingController.getBookingById);
 router.patch("/update-booking/:id",accessTokenVerify, validateBooking,authorizeRoles("admin", "seller"), BookingController.updateBooking);
 router.delete("/delete-booking/:id", accessTokenVerify, authorizeRoles("admin", "seller"),BookingController.deleteBooking);
+router.patch("/update-status",accessTokenVerify, authorizeRoles("admin"), BookingController.updateBookingStatus);
 
 module.exports = router;
