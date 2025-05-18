@@ -6,11 +6,14 @@ const {
   accessTokenVerify,
   authorizeRoles,
 } = require("../middleware/authMiddleware");
-const { validateProperty,validateUpdateProperty } = require("../middleware/useValidations");
+const {
+  validateProperty,
+  validateUpdateProperty,
+} = require("../middleware/useValidations");
 
 router.post(
   "/create-properties",
-  upload.array("propertyImages", 5),
+  upload.array("propertyImages", 10),
   accessTokenVerify,
   validateProperty,
   authorizeRoles("admin", "seller"),
@@ -44,7 +47,9 @@ router.patch(
   "/update-status",
   accessTokenVerify,
   authorizeRoles("admin"),
-  PropertyController.updatePropertyStatus,
+  PropertyController.updatePropertyStatus
 );
+
+router.get("/place-details", PropertyController.getLocationFromGoogleMaps);
 
 module.exports = router;

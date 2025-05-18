@@ -1,6 +1,9 @@
 const Property = require("../models/Property");
 const City = require("../models/City");
 
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+const axios = require("axios");
+
 // ✅ CREATE PROPERTY
 const createProperty = async (req, res) => {
   try {
@@ -13,28 +16,27 @@ const createProperty = async (req, res) => {
       bedrooms,
       bathrooms,
       facilities,
+      category,
       ["owner.name"]: ownerName,
       ["location.city"]: cityName,
-      ["location.address"]: address,
+      ["location.locality"]: locality,
+      ["location.lat"]: lat,
+      ["location.lng"]: lng,
     } = req.body;
-
-    // ✅ Convert city name to ObjectId
+    console.log(req.body);
     const cityData = await City.findOne({ name: cityName });
     if (!cityData) {
       return res
         .status(404)
-        .json({ status: "error", message: "City  not found" });
+        .json({ status: "error", message: "City not found" });
     }
 
+    const facilityList = facilities.split(",").map((f) => f.trim());
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-
     const imageUrls = req.files.map(
       (file) => `${baseUrl}/uploads/${file.filename}`
     );
-    const facilitiesArr = facilities
-      .split(",")
-      .map((facility) => facility.trim());
-    // ✅ Create the property with the correct ObjectIds
+    console.log(facilityList);
     const newProperty = new Property({
       title,
       description,
@@ -43,25 +45,27 @@ const createProperty = async (req, res) => {
       size,
       bedrooms,
       bathrooms,
-      facilities: facilitiesArr,
+      facilities: facilityList,
+      category,
       propertyImages: imageUrls,
       location: {
-        address: address,
         city: cityData._id,
+        locality,
+        lat,
+        lng,
       },
       owner: {
         name: ownerName,
       },
     });
 
-    const savedProperty = await newProperty.save();
-
+    const property = await newProperty.save();
     res.status(201).json({
       status: "success",
-      message: "Property created successfully",
-      data: savedProperty,
+      message: "Property created Successfully",
+      data: property,
     });
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
@@ -69,17 +73,66 @@ const createProperty = async (req, res) => {
 // ✅ GET ALL PROPERTIES WITH PAGINATION & FILTERS
 const getAllProperties = async (req, res) => {
   try {
-    const { page = 1, limit = 10, propertyType } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const {
+      propertyType,
+      cityId,
+      lat,
+      lng,
+      search,
+      minPrice,
+      maxPrice,
+      sortBy = "createdAt", // default sort by creation date
+      sortOrder = "desc", // default descending order
+    } = req.query;
 
     let filter = {};
+
+    // 📌 Filter by property type
     if (propertyType) filter.propertyType = propertyType;
 
-    const totalCount = await Property.countDocuments(filter); // Use filter here
+    // 📌 Filter by city ID
+    if (cityId) filter["location.city"] = cityId;
 
+    // 📌 Lat/lng filter
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    if (!isNaN(latNum) && !isNaN(lngNum)) {
+      filter["location.lat"] = latNum;
+      filter["location.lng"] = lngNum;
+    }
+
+    // 📌 Search by title or description
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // 📌 Price range filter
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+    }
+
+    // 📌 Sorting logic
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // ✅ Total count before pagination
+    const totalCount = await Property.countDocuments(filter);
+
+    // ✅ Fetch filtered, paginated, and sorted properties
     const properties = await Property.find(filter)
-      .populate("location.city location.state location.country")
+      .populate("location.city")
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(limit)
+      .sort(sortOptions)
+      .lean();
 
     res.status(200).json({
       status: "success",
@@ -92,6 +145,7 @@ const getAllProperties = async (req, res) => {
       hasPrevPage: page > 1,
     });
   } catch (error) {
+    console.error("Error in getAllProperties:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
@@ -120,62 +174,75 @@ const getPropertyById = async (req, res) => {
 
 // ✅ UPDATE PROPERTY
 const updateProperty = async (req, res) => {
-  const { id } = req.params;
-  if (!id) {
-    return res
-      .status(400)
-      .json({ status: "error", message: "Property ID is required" });
-  }
   try {
-    const location = JSON.parse(req.body.location);
-    const owner = JSON.parse(req.body.owner);
-    const facilitiesArr = JSON.parse(req.body.facilities);
+    const {
+      title,
+      description,
+      price,
+      propertyType,
+      size,
+      bedrooms,
+      bathrooms,
+      facilities,
+      category,
+      ["owner.name"]: ownerName,
+      ["location.city"]: cityName,
+      ["location.locality"]: locality,
+      ["location.lat"]: lat,
+      ["location.lng"]: lng,
+    } = req.body;
 
-    const cityData = await City.findById(location.city);
+    const { id } = req.params;
+
+    const property = await Property.findById(id);
+    if (!property) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Property not found" });
+    }
+
+    const cityData = await City.findOne({ name: cityName });
     if (!cityData) {
       return res
         .status(404)
         .json({ status: "error", message: "City not found" });
     }
-    const updatedData = {
-      title: req.body.title,
-      description: req.body.description,
-      price: req.body.price,
-      propertyType: req.body.propertyType,
-      size: req.body.size,
-      bedrooms: req.body.bedrooms,
-      bathrooms: req.body.bathrooms,
-      location,
-      owner,
-      facilities: facilitiesArr,
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const uploadedImages = req.files.map(
+      (file) => `${baseUrl}/uploads/${file.filename}`
+    );
+    const existingImages = req.body.existingImages || [];
+
+    const facilitiesArr = facilities.split(",").map((f) => f.trim());
+
+    // Update fields
+    property.title = title;
+    property.description = description;
+    property.price = price;
+    property.propertyType = propertyType;
+    property.size = size;
+    property.bedrooms = bedrooms;
+    property.bathrooms = bathrooms;
+    property.facilities = facilitiesArr;
+    property.propertyImages = [...existingImages, ...uploadedImages];
+    property.owner.name = ownerName;
+    property.location = {
+      city: cityData._id,
+      locality,
+      lat,
+      lng,
     };
-    // Handle file uploads
-    if (req.files && req.files.length > 0) {
-      updatedData.propertyImages = req.files.map(
-        (file) =>
-          `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
-      );
-    } else if (req.body.existingImages) {
-      const existingImages = JSON.parse(req.body.existingImages);
-      updatedData.propertyImages = existingImages;
-    }
+    property.category = category;
 
-    const updatedProperty = await Property.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
-
+    const updated = await property.save();
     res.status(200).json({
       status: "success",
-      message: "Property updated successfully",
-      data: updatedProperty,
+      message: "Property updated Successfully",
+      data: updated,
     });
-  } catch (error) {
-    console.error("Update error:", error);
-    res.status(500).json({
-      status: "error",
-      message: "Update failed",
-      error: error.message,
-    });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
 
@@ -203,6 +270,7 @@ const deleteProperty = async (req, res) => {
   }
 };
 
+// ✅ UPDATE PROPERTY STATUS
 const updatePropertyStatus = async (req, res) => {
   try {
     const { propertyId, status } = req.body;
@@ -226,6 +294,44 @@ const updatePropertyStatus = async (req, res) => {
   }
 };
 
+// ✅ GET LOCATION FROM GOOGLE MAPS
+const getLocationFromGoogleMaps = async (req, res) => {
+  const { placeId } = req.query;
+
+  if (!placeId) {
+    return res
+      .status(400)
+      .json({ status: "error", message: "Missing placeId" });
+  }
+
+  try {
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/place/details/json`,
+      {
+        params: {
+          place_id: placeId,
+          key: GOOGLE_MAPS_API_KEY,
+          fields: "geometry",
+        },
+      }
+    );
+
+    const result = response.data.result;
+    if (!result?.geometry?.location) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Location not found" });
+    }
+
+    res.json({ result });
+  } catch (error) {
+    console.error("Google Maps API Error:", error.message);
+    res
+      .status(500)
+      .json({ status: "error", message: "Failed to fetch place details" });
+  }
+};
+
 module.exports = {
   createProperty,
   updateProperty,
@@ -233,4 +339,5 @@ module.exports = {
   getPropertyById,
   getAllProperties,
   updatePropertyStatus,
+  getLocationFromGoogleMaps,
 };

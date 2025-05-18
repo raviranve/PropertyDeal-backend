@@ -7,12 +7,12 @@ const sendEmail = require("../utils/sendEmail");
 const Otp = require("../models/Otp");
 const RefreshToken = require("../models/RefreshToken");
 
-// Create User 
+// Create User
 exports.signup = async (req, res) => {
   try {
     console.log(req.body);
-    let { fullname, email, password, mobile,role, profileImg } = req.body;
-  
+    let { fullname, email, password, mobile, role, profileImg } = req.body;
+
     profileImg = req.file ? req.file.path : null;
     // const profileImgPath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -24,26 +24,36 @@ exports.signup = async (req, res) => {
         message: "User already exists",
         error: {
           message: "User already exists",
-        }
+        },
       });
-    } 
+    }
     // Save user
-    const newUser = new User({ fullname, email,password,mobile ,role, profileImg});
+    const newUser = new User({
+      fullname,
+      email,
+      password,
+      mobile,
+      role,
+      profileImg,
+    });
     await newUser.save();
-    res.status(201).json({ 
+    res.status(201).json({
       status: "Success",
       message: "User registered successfully.",
-       data: {
+      data: {
         user_id: newUser._id,
         full_name: newUser.fullname,
-        profileImg: `${req.protocol}://${req.get("host")}/${newUser.profileImg}`,
+        profileImg: `${req.protocol}://${req.get("host")}/${
+          newUser.profileImg
+        }`,
         email: newUser.email,
-        role:newUser.role,
-        mobile:newUser.mobile,
+        role: newUser.role,
+        mobile: newUser.mobile,
         isVerified: newUser.isVerified,
-        isGoogleUser: newUser.isGoogleUser       
-    }});
-} catch (error) {
+        isGoogleUser: newUser.isGoogleUser,
+      },
+    });
+  } catch (error) {
     res.status(500).json({
       status: "Failed",
       message: error.message,
@@ -54,93 +64,93 @@ exports.signup = async (req, res) => {
   }
 };
 
-
-
-exports.verifyOTP  = async (req, res) => {
+exports.verifyOTP = async (req, res) => {
   try {
-      const { email, otp_number, otp_type } = req.body;
+    const { email, otp_number, otp_type } = req.body;
 
-      // Find the user
-      const user = await User.findOne({ email });
-      if (!user) {
-          return res.status(400).json({
-              status: 'Failed',
-              message: 'User not found.',
-              error: { message: 'OTP verification failed' }
-          });
-      }
-
-      if (otp_type === 'verification' && user.isVerified) {
-          return res.status(400).json({
-              status: 'Failed',
-              message: 'User already verified',
-              error: { message: 'User already verified, OTP verification failed' }
-          });
-      }
-
-      // Find the latest OTP for the given email
-      const latestOtp = await Otp.findOne({ email }).sort({ createdAt: -1 }).limit(1);
-      if (!latestOtp) {
-          return res.status(400).json({
-              status: 'Failed',
-              message: 'OTP not found.',
-              error: { message: 'OTP verification failed' }
-          });
-      }
-
-      // Check if OTP matches
-      if (latestOtp.otp_number !== otp_number) {
-          return res.status(400).json({
-              status: 'Failed',
-              message: 'Invalid OTP.',
-              error: { message: 'OTP verification failed' }
-          });
-      }
-
-      // Check if OTP is expired
-      const currentTime = new Date();
-      if (latestOtp.expiresAt < currentTime) {
-          return res.status(400).json({
-              status: 'Failed',
-              message: 'OTP has expired.',
-              error: { message: 'OTP verification failed' }
-          });
-      }
-
-      // Delete OTP after successful verification
-      await Otp.deleteMany({ email });
-
-      // Update user as verified
-      user.isVerified = true;
-      await user.save();
-
-      return res.status(200).json({
-          status: 'Success',
-          message: 'OTP verified successfully',
-          data: { otp_verified: true }
+    // Find the user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "User not found.",
+        error: { message: "OTP verification failed" },
       });
+    }
+
+    if (otp_type === "verification" && user.isVerified) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "User already verified",
+        error: { message: "User already verified, OTP verification failed" },
+      });
+    }
+
+    // Find the latest OTP for the given email
+    const latestOtp = await Otp.findOne({ email })
+      .sort({ createdAt: -1 })
+      .limit(1);
+    if (!latestOtp) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "OTP not found.",
+        error: { message: "OTP verification failed" },
+      });
+    }
+
+    // Check if OTP matches
+    if (latestOtp.otp_number !== otp_number) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Invalid OTP.",
+        error: { message: "OTP verification failed" },
+      });
+    }
+
+    // Check if OTP is expired
+    const currentTime = new Date();
+    if (latestOtp.expiresAt < currentTime) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "OTP has expired.",
+        error: { message: "OTP verification failed" },
+      });
+    }
+
+    // Delete OTP after successful verification
+    await Otp.deleteMany({ email });
+
+    // Update user as verified
+    user.isVerified = true;
+    await user.save();
+
+    return res.status(200).json({
+      status: "Success",
+      message: "OTP verified successfully",
+      data: { otp_verified: true },
+    });
   } catch (error) {
-      res.status(500).json({
-          status: 'Failed',
-          message: error.message,
-          error: { message: 'OTP verification failed' }
-      });
+    res.status(500).json({
+      status: "Failed",
+      message: error.message,
+      error: { message: "OTP verification failed" },
+    });
   }
 };
 
 //  **generate Otp**
 exports.generateOtp = async (req, res) => {
   try {
-    const { email ,otp_type } = req.body;
+    const { email, otp_type } = req.body;
     const user = await User.findOne({ email });
-    if(!user){
+    if (!user) {
       return res.status(400).json({
         status: "Failed",
         message: "User not found",
         error: {
           message: "OTP not send due to techinical error",
         },
-      }); 
+      });
     }
 
     if (otp_type === "varification" && user.isVerified) {
@@ -158,44 +168,47 @@ exports.generateOtp = async (req, res) => {
     // Remove previous OTPs
     await Otp.deleteMany({ userId: user._id });
     // Store OTP with userId
-    await Otp.create({userId: user._id, email: user.email, otp_number: otp, expiresAt });
+    await Otp.create({
+      userId: user._id,
+      email: user.email,
+      otp_number: otp,
+      expiresAt,
+    });
 
     if (otp_type === "varification") {
       return res.status(200).json({
         status: "Success",
         message: "OTP sent successfully.",
         data: {
-          otp:otp,
+          otp: otp,
           otp_send: true,
-          email:email
-        }
+          email: email,
+        },
       });
-    }
-    else if(otp_type === "forgot"){
+    } else if (otp_type === "forgot") {
       return res.status(200).json({
         status: "Success",
         message: "Password reset OTP sent successfully.",
         data: {
-          otp:otp,
+          otp: otp,
           otp_send: true,
-          email:email
-        }
+          email: email,
+        },
       });
-    }
-    else {
+    } else {
       return res.status(400).json({
         status: "Failed",
         message: "OTP not send due to techinical error",
         error: {
-          message: "Invalid OTP type"
-        }
+          message: "Invalid OTP type",
+        },
       });
     }
   } catch (error) {
     res.status(500).json({
       status: "Failed",
       message: error.message,
-      error: { message: "OTP not send due to techinical error" }
+      error: { message: "OTP not send due to techinical error" },
     });
   }
 };
@@ -235,10 +248,10 @@ exports.login = async (req, res) => {
       if (refreshTokenEntry) {
         await RefreshToken.deleteOne({ userId: user._id });
       }
-    
-      const tokens = user.generateAuthToken();  // ✅ generate once
+
+      const tokens = user.generateAuthToken(); // ✅ generate once
       refreshToken = tokens.refreshToken;
-    
+
       refreshTokenEntry = new RefreshToken({
         token: refreshToken,
         userId: user._id,
@@ -246,19 +259,19 @@ exports.login = async (req, res) => {
       });
       await refreshTokenEntry.save();
     }
-    // Set tokens in HTTP-only cookies    
-    const tokens = user.generateAuthToken(); 
+    // Set tokens in HTTP-only cookies
+    const tokens = user.generateAuthToken();
     const accessToken = tokens.accessToken;
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
       maxAge: 3 * 24 * 60 * 60 * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -274,14 +287,18 @@ exports.login = async (req, res) => {
         accessToken,
         refreshToken,
         isVerified: user.isVerified,
-      }
+        mobile: user.mobile,
+        profileImg: user.profileImg
+          ? `${req.protocol}://${req.get("host")}/${user.profileImg}`
+          : null,
+        isGoogleUser: user.isGoogleUser,
+      },
     });
-
   } catch (error) {
     res.status(500).json({
       status: "Failed",
       message: error.message,
-      error: { message: "User login failed" }
+      error: { message: "User login failed" },
     });
   }
 };
@@ -295,21 +312,38 @@ exports.resetPassword = async (req, res) => {
     // Find the user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ status:"Failed", message: "User not found" ,error:{message:"Password reset failed"}});
+      return res
+        .status(400)
+        .json({
+          status: "Failed",
+          message: "User not found",
+          error: { message: "Password reset failed" },
+        });
     }
-    if(user.isVerified){
+    if (user.isVerified) {
       user.password = newPassword;
       await user.save();
-      res.status(200).json({ status: "success", message: "Password reset successfully" });
+      res
+        .status(200)
+        .json({ status: "success", message: "Password reset successfully" });
+    } else {
+      return res
+        .status(400)
+        .json({
+          status: "Failed",
+          message: "OTP must be verified before resetting the password",
+        });
     }
-    else{
-      return res.status(400).json({ status: "Failed", message: "OTP must be verified before resetting the password" });
-    }  
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        status: "Failed",
+        message: error.message,
+        error: { message: "Password reset failed" },
+      });
   }
-  catch (error) {
-    res.status(500).json({ status: "Failed", message: error.message , error:{message:"Password reset failed"}});
-  }
-}
+};
 
 //  **Google Auth**
 exports.googleAuth = async (req, res) => {
@@ -342,6 +376,7 @@ exports.googleAuth = async (req, res) => {
         isVerified: true,
         isGoogleUser: true,
         profileImg: picture || null,
+        mobile: user.mobile || null,
       });
     } else {
       // Existing user but no role (edge case)
@@ -388,9 +423,9 @@ exports.googleAuth = async (req, res) => {
         refreshToken,
         isVerified: user.isVerified,
         isGoogleUser: user.isGoogleUser,
-        role:user.role,
+        role: user.role,
         userId: user._id,
-        email: user.email
+        email: user.email,
       },
     });
   } catch (error) {
