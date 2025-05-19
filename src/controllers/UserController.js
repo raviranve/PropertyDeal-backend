@@ -376,7 +376,6 @@ exports.googleAuth = async (req, res) => {
         isVerified: true,
         isGoogleUser: true,
         profileImg: picture || null,
-        mobile: user.mobile || null,
       });
     } else {
       // Existing user but no role (edge case)

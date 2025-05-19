@@ -19,11 +19,7 @@ router.post(
   authorizeRoles("admin", "seller"),
   PropertyController.createProperty
 );
-router.get(
-  "/get-properties",
-  accessTokenVerify,
-  PropertyController.getAllProperties
-);
+router.get("/get-properties", PropertyController.getAllProperties);
 router.get(
   "/get-property/:id",
   accessTokenVerify,
