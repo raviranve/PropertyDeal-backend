@@ -9,13 +9,11 @@ exports.sendNotification = async (req, res) => {
     // Emit notification via Socket.io
     const io = req.app.get("socketio");
     io.emit("notification", { userId, message, type });
-    res
-      .status(201)
-      .json({
-        status: true,
-        message: "Notification sent successfully",
-        data: newNotification,
-      });
+    res.status(201).json({
+      status: true,
+      message: "Notification sent successfully",
+      data: newNotification,
+    });
   } catch (error) {
     res
       .status(500)
@@ -26,13 +24,11 @@ exports.sendNotification = async (req, res) => {
 exports.getAllNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find().sort({ createdAt: -1 });
-    res
-      .status(200)
-      .json({
-        status: true,
-        message: "Notifications fetched successfully",
-        data: notifications,
-      });
+    res.status(200).json({
+      status: true,
+      message: "Notifications fetched successfully",
+      data: notifications,
+    });
   } catch (error) {
     res
       .status(500)
@@ -102,17 +98,15 @@ exports.clearAllNotifications = async (req, res) => {
 // ✅ Send sms notification
 exports.sendSmsToMobile = async (req, res) => {
   try {
-    const { to, message, userId, userMobileNumber } = req.body;
+    const { message, userId } = req.body;
     const newSms = new Sms({
-      to,
       message,
       userId,
       sid: process.env.TWILIO_ACCOUNT_SID,
     });
     await newSms.save();
 
-    sendSms(message, userMobileNumber); // Call the sendSms function to send the SMS
-    console.log(`Sending SMS to ${to}: ${message}`);
+    sendSms(message); // Call the sendSms function to send the SMS
     res.status(200).json({ status: true, message: "SMS sent successfully" });
   } catch (error) {
     res

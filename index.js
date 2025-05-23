@@ -13,6 +13,8 @@ const propertyRoutes = require("./src/routes/PropertyRoutes");
 const enquiryRoutes = require("./src/routes/EnquiryRoutes");
 const bookingRoutes = require("./src/routes/BookingRoutes");
 const cityRoutes = require("./src/routes/CityRoutes");
+const categoryRoutes = require("./src/routes/CategoryRoutes");
+const viewerRoutes = require("./src/routes/ViewersRoutes");
 
 const http = require("http");
 const server = http.createServer(app);
@@ -96,6 +98,8 @@ app.use("/api/properties", propertyRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/enquiries", enquiryRoutes); 
 app.use("/api/cities", cityRoutes); 
+app.use("/api/categories", categoryRoutes);
+app.use("/api/viewers", viewerRoutes);
 
 // Default Route
 app.get("/", (req, res) => {

@@ -42,8 +42,12 @@ const propertySchema = new mongoose.Schema({
     default: "Available",
   },
   category: {
-    type: String,
-    enum: ["Residential", "Commercial", "Industrial", "Land", "Agricultural", "Other"],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true,
+  },
+  subCategory: {
+    type: [String], // ✅ allow multiple subcategory names
     required: true,
   },
 

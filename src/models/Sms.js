@@ -7,11 +7,6 @@ const smsSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    to: {
-      type: String,
-      required: true,
-      // e.g. "+1234567890"
-    },
     message: {
       type: String,
       required: true,

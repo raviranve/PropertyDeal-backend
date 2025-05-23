@@ -3,8 +3,159 @@ const City = require("../models/City");
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const axios = require("axios");
-
+const Category = require("../models/Category");
 // ✅ CREATE PROPERTY
+// const createProperty = async (req, res) => {
+//   try {
+//     const {
+//       title,
+//       description,
+//       price,
+//       propertyType,
+//       size,
+//       bedrooms,
+//       bathrooms,
+//       facilities,
+//       category,
+//       ["owner.name"]: ownerName,
+//       ["location.city"]: cityName,
+//       ["location.locality"]: locality,
+//       ["location.lat"]: lat,
+//       ["location.lng"]: lng,
+//     } = req.body;
+
+//     const cityData = await City.findOne({ name: cityName });
+//     if (!cityData) {
+//       return res
+//         .status(404)
+//         .json({ status: "error", message: "City not found" });
+//     }
+
+//     const facilityList = facilities.split(",").map((f) => f.trim());
+//     const baseUrl = `${req.protocol}://${req.get("host")}`;
+//     const imageUrls = req.files.map(
+//       (file) => `${baseUrl}/uploads/${file.filename}`
+//     );
+//     console.log(facilityList);
+//     const newProperty = new Property({
+//       title,
+//       description,
+//       price,
+//       propertyType,
+//       size,
+//       bedrooms,
+//       bathrooms,
+//       facilities: facilityList,
+//       category,
+//       propertyImages: imageUrls,
+//       location: {
+//         city: cityData._id,
+//         locality,
+//         lat,
+//         lng,
+//       },
+//       owner: {
+//         name: ownerName,
+//       },
+//     });
+
+//     const property = await newProperty.save();
+//     res.status(201).json({
+//       status: "success",
+//       message: "Property created Successfully",
+//       data: property,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ status: "error", message: "Internal Server Error" });
+//   }
+// };
+
+// const createProperty = async (req, res) => {
+//   try {
+//     const {
+//       title,
+//       description,
+//       price,
+//       propertyType,
+//       size,
+//       bedrooms,
+//       bathrooms,
+//       facilities,
+//       category, // category ObjectId
+//       subCategory, // subcategory name as string
+//       ["owner.name"]: ownerName,
+//       ["location.city"]: cityName,
+//       ["location.locality"]: locality,
+//       ["location.lat"]: lat,
+//       ["location.lng"]: lng,
+//     } = req.body;
+
+//     // Validate city
+//     const cityData = await City.findOne({ name: cityName });
+//     if (!cityData) {
+//       return res.status(404).json({ status: "error", message: "City not found" });
+//     }
+
+//     // Validate category
+//     const categoryData = await Category.findById(category);
+//     if (!categoryData) {
+//       return res.status(404).json({ status: "error", message: "Category not found" });
+//     }
+
+//     // Validate subcategory
+//     const isValidSubCategory = categoryData.subCategories.some(
+//       (sub) => sub.name === subCategory
+//     );
+//     if (!isValidSubCategory) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Invalid subcategory for the selected category",
+//       });
+//     }
+
+//     // Process facilities and images
+//     const facilityList = facilities?.split(",").map((f) => f.trim()) || [];
+//     const baseUrl = `${req.protocol}://${req.get("host")}`;
+//     const imageUrls = req.files?.map(
+//       (file) => `${baseUrl}/uploads/${file.filename}`
+//     ) || [];
+
+//     const newProperty = new Property({
+//       title,
+//       description,
+//       price,
+//       propertyType,
+//       size,
+//       bedrooms,
+//       bathrooms,
+//       facilities: facilityList,
+//       propertyImages: imageUrls,
+//       location: {
+//         city: cityData._id,
+//         locality,
+//         lat,
+//         lng,
+//       },
+//       owner: {
+//         name: ownerName,
+//       },
+//       category,
+//       subCategory, // saving as a string
+//     });
+
+//     const property = await newProperty.save();
+
+//     res.status(201).json({
+//       status: "success",
+//       message: "Property created successfully",
+//       data: property,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ status: "error", message: "Internal Server Error" });
+//   }
+// };
+
 const createProperty = async (req, res) => {
   try {
     const {
@@ -16,14 +167,17 @@ const createProperty = async (req, res) => {
       bedrooms,
       bathrooms,
       facilities,
-      category,
+      category, // category ObjectId
+      subCategory, // array of subcategory names
       ["owner.name"]: ownerName,
       ["location.city"]: cityName,
       ["location.locality"]: locality,
       ["location.lat"]: lat,
       ["location.lng"]: lng,
     } = req.body;
-    console.log(req.body);
+
+    // console.log(req.body);
+    // Validate city
     const cityData = await City.findOne({ name: cityName });
     if (!cityData) {
       return res
@@ -31,12 +185,22 @@ const createProperty = async (req, res) => {
         .json({ status: "error", message: "City not found" });
     }
 
-    const facilityList = facilities.split(",").map((f) => f.trim());
+    // Validate category
+    const categoryData = await Category.findById(category);
+    if (!categoryData) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Category not found" });
+    }
+
+    // Process facilities and images
+    const facilityList = facilities?.split(",").map((f) => f.trim()) || [];
+    const subCategories = subCategory?.split(",").map((f) => f.trim()) || [];
+
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const imageUrls = req.files.map(
-      (file) => `${baseUrl}/uploads/${file.filename}`
-    );
-    console.log(facilityList);
+    const imageUrls =
+      req.files?.map((file) => `${baseUrl}/uploads/${file.filename}`) || [];
+
     const newProperty = new Property({
       title,
       description,
@@ -46,7 +210,6 @@ const createProperty = async (req, res) => {
       bedrooms,
       bathrooms,
       facilities: facilityList,
-      category,
       propertyImages: imageUrls,
       location: {
         city: cityData._id,
@@ -57,15 +220,19 @@ const createProperty = async (req, res) => {
       owner: {
         name: ownerName,
       },
+      category,
+      subCategory: subCategories, // Save as array
     });
 
     const property = await newProperty.save();
+
     res.status(201).json({
       status: "success",
-      message: "Property created Successfully",
+      message: "Property created successfully",
       data: property,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
@@ -76,17 +243,8 @@ const getAllProperties = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    const {
-      propertyType,
-      cityId,
-      lat,
-      lng,
-      search,
-      minPrice,
-      maxPrice,
-      sortBy = "createdAt", // default sort by creation date
-      sortOrder = "desc", // default descending order
-    } = req.query;
+    const { propertyType, cityId, lat, lng, search, categoryId, subCategory } =
+      req.query;
 
     let filter = {};
 
@@ -112,16 +270,8 @@ const getAllProperties = async (req, res) => {
       ];
     }
 
-    // 📌 Price range filter
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = parseFloat(minPrice);
-      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
-    }
-
-    // 📌 Sorting logic
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
+    categoryId && (filter.category = categoryId);
+    subCategory && (filter.subCategory = subCategory);
 
     // ✅ Total count before pagination
     const totalCount = await Property.countDocuments(filter);
@@ -130,9 +280,7 @@ const getAllProperties = async (req, res) => {
     const properties = await Property.find(filter)
       .populate("location.city")
       .skip((page - 1) * limit)
-      .limit(limit)
-      .sort(sortOptions)
-      .lean();
+      .limit(limit);
 
     res.status(200).json({
       status: "success",
@@ -154,7 +302,7 @@ const getAllProperties = async (req, res) => {
 const getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id).populate(
-      "location.city location.state location.country"
+      "location.city location.state location.country category"
     );
     if (!property) {
       return res
@@ -185,6 +333,7 @@ const updateProperty = async (req, res) => {
       bathrooms,
       facilities,
       category,
+      subCategory,
       ["owner.name"]: ownerName,
       ["location.city"]: cityName,
       ["location.locality"]: locality,
@@ -208,12 +357,22 @@ const updateProperty = async (req, res) => {
         .json({ status: "error", message: "City not found" });
     }
 
+    // Validate category
+    const categoryData = await Category.findById(category);
+    if (!categoryData) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Category not found" });
+    }
+
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const uploadedImages = req.files.map(
       (file) => `${baseUrl}/uploads/${file.filename}`
     );
     const existingImages = req.body.existingImages || [];
 
+    // Process facilities and images
+    const subCategories = subCategory?.split(",").map((f) => f.trim()) || [];
     const facilitiesArr = facilities.split(",").map((f) => f.trim());
 
     // Update fields
@@ -234,6 +393,7 @@ const updateProperty = async (req, res) => {
       lng,
     };
     property.category = category;
+    property.subCategory = subCategories; // Save as array
 
     const updated = await property.save();
     res.status(200).json({

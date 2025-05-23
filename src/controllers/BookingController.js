@@ -1,4 +1,5 @@
 const Booking = require("../models/Booking");
+const { success } = require("../utils/responseHandler");
 const sendNotification = require("../utils/sendNotification");
 
 exports.createBooking = async (req, res) => {
@@ -22,13 +23,11 @@ exports.createBooking = async (req, res) => {
       message: `${name} booked the property`,
       data: newBooking,
     });
-    res
-      .status(201)
-      .json({
-        status: true,
-        message: "Booking created successfully",
-        data: newBooking,
-      });
+    res.status(201).json({
+      status: true,
+      message: "Booking created successfully",
+      data: newBooking,
+    });
   } catch (error) {
     res
       .status(500)
@@ -46,10 +45,7 @@ exports.getAllBookings = async (req, res) => {
 
     const totalBookings = await Booking.countDocuments();
     const bookings = await Booking.find()
-      .populate(
-        "propertyId",
-        "location.city location.state location.country location.address"
-      )
+      .populate("propertyId")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
@@ -81,13 +77,11 @@ exports.getBookingById = async (req, res) => {
         .status(404)
         .json({ status: false, message: "Booking not found" });
     }
-    res
-      .status(200)
-      .json({
-        status: true,
-        message: "Booking fetched successfully",
-        data: booking,
-      });
+    res.status(200).json({
+      status: true,
+      message: "Booking fetched successfully",
+      data: booking,
+    });
   } catch (error) {
     res
       .status(500)
@@ -112,12 +106,11 @@ exports.updateBooking = async (req, res) => {
         .json({ status: false, message: "Booking not found" });
     }
 
-    res.status(200)
-      .json({
-        status: true,
-        message: "Booking updated successfully",
-        data: updatedBooking,
-      });
+    res.status(200).json({
+      status: true,
+      message: "Booking updated successfully",
+      data: updatedBooking,
+    });
   } catch (error) {
     res
       .status(500)
@@ -128,8 +121,8 @@ exports.updateBooking = async (req, res) => {
 //  Update booking status
 exports.updateBookingStatus = async (req, res) => {
   try {
-    const { bookingId, status } = req.body; 
-     const updatedBooking = await Booking.findByIdAndUpdate(
+    const { bookingId, status } = req.body;
+    const updatedBooking = await Booking.findByIdAndUpdate(
       bookingId,
       { status },
       { new: true }
@@ -148,7 +141,6 @@ exports.updateBookingStatus = async (req, res) => {
   }
 };
 
-
 // Delete Booking
 exports.deleteBooking = async (req, res) => {
   try {
@@ -159,12 +151,49 @@ exports.deleteBooking = async (req, res) => {
         .json({ status: false, message: "Booking not found" });
     }
 
-    res
-      .status(200)
-      .json({ status: true, message: "Booking deleted successfully", data: deletedBooking });
+    res.status(200).json({
+      status: true,
+      message: "Booking deleted successfully",
+      data: deletedBooking,
+    });
   } catch (error) {
     res
       .status(500)
       .json({ status: false, message: "Server error", error: error.message });
+  }
+};
+
+exports.getTotalRevenue = async (req, res) => {
+  try {
+    const data = await Booking.aggregate([
+      {
+        $match: { status: "confirmed" }
+      },
+      {
+        $lookup: {
+          from: "properties",
+          localField: "propertyId",
+          foreignField: "_id",
+          as: "property"
+        }
+      },
+      { $unwind: "$property" },
+      {
+        $group: {
+          _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
+          totalRevenue: { $sum: "$property.price" },
+          bookings: {
+            $push: {
+              createdAt: "$createdAt",
+              price: "$property.price"
+            }
+          }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+    success(res, data[0], "Revenue fetched successfully");
+  } catch (err) {
+    res.status(500).json({ message: "Failed to get revenue", error: err });
   }
 };

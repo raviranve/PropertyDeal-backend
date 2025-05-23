@@ -1,4 +1,4 @@
-const twilio = require('twilio');
+const twilio = require("twilio");
 
 // Use your credentials here
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -10,18 +10,18 @@ const client = new twilio(accountSid, authToken);
  * @param {string} to - Recipient's phone number in E.164 format (e.g., '+1234567890')
  * @param {string} message - Message content
  */
-function sendSms(message, from) {
+function sendSms(message) {
   client.messages
     .create({
       body: message,
-      from: from, // Your Twilio phone number
-      to: 6265983953 // Recipient's phone number,
+      from: process.env.TWILIO_PHONE_NUMBER, // Your Twilio phone number
+      to: process.env.MY_PHONE_NUMBER, // Recipient's phone number,
     })
-    .then(message => {
+    .then((message) => {
       console.log(`Message sent successfully. SID: ${message.sid}`, message);
     })
-    .catch(error => {
-      console.error('Error sending message:', error);
+    .catch((error) => {
+      console.error("Error sending message:", error);
     });
 }
 

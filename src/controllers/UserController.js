@@ -41,7 +41,7 @@ exports.signup = async (req, res) => {
       status: "Success",
       message: "User registered successfully.",
       data: {
-        user_id: newUser._id,
+        userId: newUser._id,
         full_name: newUser.fullname,
         profileImg: `${req.protocol}://${req.get("host")}/${
           newUser.profileImg
@@ -280,7 +280,7 @@ exports.login = async (req, res) => {
       status: "Success",
       message: "User logged in successfully.",
       data: {
-        user_id: user._id,
+        userId: user._id,
         full_name: user.fullname,
         email: user.email,
         role: user.role,
