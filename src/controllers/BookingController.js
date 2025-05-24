@@ -167,30 +167,33 @@ exports.getTotalRevenue = async (req, res) => {
   try {
     const data = await Booking.aggregate([
       {
-        $match: { status: "confirmed" }
+        $match: { status: "confirmed" },
       },
       {
         $lookup: {
           from: "properties",
           localField: "propertyId",
           foreignField: "_id",
-          as: "property"
-        }
+          as: "property",
+        },
       },
       { $unwind: "$property" },
       {
         $group: {
-          _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" },
+          },
           totalRevenue: { $sum: "$property.price" },
           bookings: {
             $push: {
               createdAt: "$createdAt",
-              price: "$property.price"
-            }
-          }
-        }
+              price: "$property.price",
+            },
+          },
+        },
       },
-      { $sort: { "_id.year": 1, "_id.month": 1 } }
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]);
     success(res, data[0], "Revenue fetched successfully");
   } catch (err) {

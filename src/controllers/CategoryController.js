@@ -27,7 +27,7 @@ exports.getAllCategories = async (req, res) => {
     res.status(200).json({
       status: true,
       message: "Category fetched successfully",
-      data: categories,
+      data: categories || [],
       totalCategories,
       currentPage: page,
       totalPages: Math.ceil(totalCategories / limit),
@@ -122,5 +122,29 @@ exports.deleteSubCategory = async (req, res) => {
     success(res, category, "Subcategory deleted");
   } catch (err) {
     error(res, err);
+  }
+};
+
+// ✅ UPDATE Category STATUS
+exports.updateCategoryStatus = async (req, res) => {
+  try {
+    const { categoryId, status } = req.body;
+    console.log(categoryId, status)
+    const updateCategory = await Category.findByIdAndUpdate(
+      categoryId,
+      { status },
+      { new: true }
+    );
+    res.status(200).json({
+      status: true,
+      message: "Category status updated successfully",
+      data: updateCategory,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: "Server error, booking status not updated",
+      error: error.message,
+    });
   }
 };
