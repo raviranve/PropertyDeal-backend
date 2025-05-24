@@ -181,21 +181,16 @@ exports.getTotalRevenue = async (req, res) => {
       {
         $group: {
           _id: {
-            month: { $month: "$createdAt" },
-            year: { $year: "$createdAt" },
+            month: { $month: "$dateTime" },
+            year: { $year: "$dateTime" },
           },
           totalRevenue: { $sum: "$property.price" },
-          bookings: {
-            $push: {
-              createdAt: "$createdAt",
-              price: "$property.price",
-            },
-          },
         },
       },
       { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]);
-    success(res, data[0], "Revenue fetched successfully");
+
+    success(res, { bookings: data }, "Revenue fetched successfully");
   } catch (err) {
     res.status(500).json({ message: "Failed to get revenue", error: err });
   }

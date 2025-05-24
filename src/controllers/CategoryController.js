@@ -4,6 +4,15 @@ const { success, error } = require("../utils/responseHandler");
 exports.createCategory = async (req, res) => {
   try {
     const { categoryName, createdBy, subCategories } = req.body;
+    
+     const existing = await Category.findOne({ categoryName: { $regex: `^${categoryName}$`, $options: 'i' } });
+    if (existing) {
+      return res.status(400).json({
+        status: false,
+        message: "Category name already exists"
+      });
+    }
+
     const category = await Category.create({
       categoryName,
       createdBy,
@@ -53,8 +62,41 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 
+// exports.updateCategory = async (req, res) => {
+//   try {
+//     const updated = await Category.findByIdAndUpdate(req.params.id, req.body, {
+//       new: true,
+//     });
+//     if (!updated) return error(res, new Error("Category not found"), 404);
+//     // Check if the category name already exists
+//     const existing = await Category.findOne({
+//       _id: { $ne: req.params.id },
+//       categoryName: { $regex: `^${req.body.categoryName}$`, $options: 'i' }
+//     });
+    
+//     success(res, updated, "Category Updated Successfully");
+//   } catch (err) {
+//     error(res, err, 400);
+//   }
+// };
+
 exports.updateCategory = async (req, res) => {
   try {
+    const { categoryName } = req.body;
+    if (categoryName) {
+      // Check for duplicate name before updating
+      const existing = await Category.findOne({
+        categoryName: { $regex: `^${categoryName}$`, $options: 'i' },
+        _id: { $ne: req.params.id }
+      });
+      if (existing) {
+        return res.status(200).json({
+          status: false,
+          message: "Category name already exists"
+        });
+      }
+    }
+
     const updated = await Category.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
