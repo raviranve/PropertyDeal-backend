@@ -1,6 +1,7 @@
 const Property = require("../models/Property");
 const City = require("../models/City");
-
+const fs = require("fs");
+const path = require("path");
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const axios = require("axios");
 const Category = require("../models/Category");
@@ -365,11 +366,29 @@ const updateProperty = async (req, res) => {
         .json({ status: "error", message: "Category not found" });
     }
 
+    const existingImages = req.body.existingImages || [];
+
+    // ✅ Delete only the removed images
+    const removedImages = property.propertyImages.filter(
+      (url) => !existingImages.includes(url)
+    );
+
+    removedImages.forEach((url) => {
+      const filename = url.split("/").pop();
+      const imagePath = path.join(__dirname, "..", "..", "uploads", filename);
+      fs.unlink(imagePath, (err) => {
+        if (err && err.code !== "ENOENT") {
+          console.warn("Failed to delete image:", filename, err.message);
+        } else {
+          console.log("Deleted image:", filename);
+        }
+      });
+    });
+
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const uploadedImages = req.files.map(
       (file) => `${baseUrl}/uploads/${file.filename}`
     );
-    const existingImages = req.body.existingImages || [];
 
     // Process facilities and images
     const subCategories = subCategory?.split(",").map((f) => f.trim()) || [];
@@ -407,6 +426,7 @@ const updateProperty = async (req, res) => {
 };
 
 // ✅ DELETE PROPERTY
+
 const deleteProperty = async (req, res) => {
   const { id } = req.params;
   if (!id) {
@@ -414,13 +434,31 @@ const deleteProperty = async (req, res) => {
       .status(400)
       .json({ status: "error", message: "Property ID is required" });
   }
+
   try {
     const deletedProperty = await Property.findByIdAndDelete(id);
+
     if (!deletedProperty) {
       return res
         .status(404)
         .json({ status: "error", message: "Property not found" });
     }
+
+    if (Array.isArray(deletedProperty.propertyImages)) {
+      deletedProperty.propertyImages.forEach((imageUrl) => {
+        const filename = imageUrl.split("/").pop();
+
+        const imagePath = path.join(__dirname, "..", "..", "uploads", filename);
+        fs.unlink(imagePath, (err) => {
+          if (err) {
+            console.warn("Failed to delete image:", filename, err.message);
+          } else {
+            console.log("Image deleted:", filename);
+          }
+        });
+      });
+    }
+
     res
       .status(200)
       .json({ status: "success", message: "Property deleted successfully" });

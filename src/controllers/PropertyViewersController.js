@@ -6,14 +6,13 @@ const sendSms = require("../utils/SendSms");
 
 exports.trackViewers = async (req, res) => {
   try {
-    const page = "home";
     const ipAddress =
       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
-    // Try to insert only if it doesn’t exist
-    const existing = await View.findOne({ page, ipAddress });
+    const existing = await View.findOne({ ipAddress });
+
     if (!existing) {
-      await View.create({ page, ipAddress });
+      await View.create({ ipAddress });
       sendSms("New Visitor tracked from Website", `IP: ${ipAddress}`);
     }
 
@@ -25,7 +24,7 @@ exports.trackViewers = async (req, res) => {
 
 exports.getViewersCount = async (req, res) => {
   try {
-    const count = await View.countDocuments({ page: "home" });
+    const count = await View.countDocuments();
     success(res, count, "Viewers Fetched Successfully");
   } catch (err) {
     res.status(500).json({ message: "Error fetching views", error: err });

@@ -355,6 +355,8 @@ exports.googleAuth = async (req, res) => {
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
+    console.log(role)
+
     const { sub: googleId, email, name, picture } = ticket.getPayload();
 
     let user = await User.findOne({ email });
