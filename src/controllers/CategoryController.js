@@ -4,12 +4,14 @@ const { success, error } = require("../utils/responseHandler");
 exports.createCategory = async (req, res) => {
   try {
     const { categoryName, createdBy, subCategories } = req.body;
-    
-     const existing = await Category.findOne({ categoryName: { $regex: `^${categoryName}$`, $options: 'i' } });
+
+    const existing = await Category.findOne({
+      categoryName: { $regex: `^${categoryName}$`, $options: "i" },
+    });
     if (existing) {
       return res.status(400).json({
         status: false,
-        message: "Category name already exists"
+        message: "Category name already exists",
       });
     }
 
@@ -31,6 +33,7 @@ exports.getAllCategories = async (req, res) => {
     limit = parseInt(limit);
     const totalCategories = await Category.countDocuments();
     const categories = await Category.find()
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
     res.status(200).json({
@@ -73,7 +76,7 @@ exports.getCategoryById = async (req, res) => {
 //       _id: { $ne: req.params.id },
 //       categoryName: { $regex: `^${req.body.categoryName}$`, $options: 'i' }
 //     });
-    
+
 //     success(res, updated, "Category Updated Successfully");
 //   } catch (err) {
 //     error(res, err, 400);
@@ -86,13 +89,13 @@ exports.updateCategory = async (req, res) => {
     if (categoryName) {
       // Check for duplicate name before updating
       const existing = await Category.findOne({
-        categoryName: { $regex: `^${categoryName}$`, $options: 'i' },
-        _id: { $ne: req.params.id }
+        categoryName: { $regex: `^${categoryName}$`, $options: "i" },
+        _id: { $ne: req.params.id },
       });
       if (existing) {
         return res.status(200).json({
           status: false,
-          message: "Category name already exists"
+          message: "Category name already exists",
         });
       }
     }
@@ -171,7 +174,7 @@ exports.deleteSubCategory = async (req, res) => {
 exports.updateCategoryStatus = async (req, res) => {
   try {
     const { categoryId, status } = req.body;
-    console.log(categoryId, status)
+    console.log(categoryId, status);
     const updateCategory = await Category.findByIdAndUpdate(
       categoryId,
       { status },

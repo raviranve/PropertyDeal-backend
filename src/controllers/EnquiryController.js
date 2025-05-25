@@ -36,6 +36,7 @@ exports.getAllEnquiries = async (req, res) => {
     limit = parseInt(limit);
     const totalEnquiries = await Enquiry.countDocuments();
     const enquiries = await Enquiry.find()
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
     res.status(200).json({

@@ -36,7 +36,7 @@ router.patch(
 router.delete(
   "/delete-property/:id",
   accessTokenVerify,
-  authorizeRoles("admin", "seller"),
+  authorizeRoles("admin"),
   PropertyController.deleteProperty
 );
 router.patch(

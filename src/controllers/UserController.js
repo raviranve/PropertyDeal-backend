@@ -312,13 +312,11 @@ exports.resetPassword = async (req, res) => {
     // Find the user
     const user = await User.findOne({ email });
     if (!user) {
-      return res
-        .status(400)
-        .json({
-          status: "Failed",
-          message: "User not found",
-          error: { message: "Password reset failed" },
-        });
+      return res.status(400).json({
+        status: "Failed",
+        message: "User not found",
+        error: { message: "Password reset failed" },
+      });
     }
     if (user.isVerified) {
       user.password = newPassword;
@@ -327,21 +325,17 @@ exports.resetPassword = async (req, res) => {
         .status(200)
         .json({ status: "success", message: "Password reset successfully" });
     } else {
-      return res
-        .status(400)
-        .json({
-          status: "Failed",
-          message: "OTP must be verified before resetting the password",
-        });
+      return res.status(400).json({
+        status: "Failed",
+        message: "OTP must be verified before resetting the password",
+      });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        status: "Failed",
-        message: error.message,
-        error: { message: "Password reset failed" },
-      });
+    res.status(500).json({
+      status: "Failed",
+      message: error.message,
+      error: { message: "Password reset failed" },
+    });
   }
 };
 
@@ -354,8 +348,6 @@ exports.googleAuth = async (req, res) => {
       idToken: tokenId,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-
-    console.log(role)
 
     const { sub: googleId, email, name, picture } = ticket.getPayload();
 
@@ -377,7 +369,7 @@ exports.googleAuth = async (req, res) => {
         role: role.toLowerCase(),
         isVerified: true,
         isGoogleUser: true,
-        profileImg: picture || null,
+        profileImg: picture,
       });
     } else {
       // Existing user but no role (edge case)
@@ -443,6 +435,7 @@ exports.getUsers = async (req, res) => {
     limit = parseInt(limit);
     const totalUsers = await User.countDocuments();
     const users = await User.find()
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
     res.status(200).json({

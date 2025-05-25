@@ -16,6 +16,7 @@ router.post(
 router.get(
   "/get-bookings",
   accessTokenVerify,
+  authorizeRoles("admin", "seller"),
   BookingController.getAllBookings
 );
 router.get(
@@ -45,7 +46,7 @@ router.patch(
 router.get(
   "/get-revenue",
   accessTokenVerify,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "seller"),
   BookingController.getTotalRevenue
 );
 

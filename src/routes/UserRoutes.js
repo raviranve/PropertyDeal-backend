@@ -20,7 +20,7 @@ router.post(
   upload.single("profileImg"),
   validateSignup,
   userController.signup
-); // Profile image upload
+);
 
 router.post("/login", validateLogin, userController.login);
 // Google Login
@@ -41,13 +41,12 @@ router.post(
 router.get(
   "/users",
   accessTokenVerify,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "seller"),
   userController.getUsers
 );
 router.get(
   "/users/:id",
   accessTokenVerify,
-  authorizeRoles("admin", "seller", "buyer"),
   userController.getUserById
 );
 router.patch(

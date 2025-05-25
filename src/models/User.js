@@ -11,12 +11,6 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    // password: { type: String, required: true },
-    // mobile: {
-    //     type: String,
-    //     required: true,
-    //     unique: true,
-    // },
     password: {
       type: String,
       required: function () {
@@ -29,8 +23,9 @@ const userSchema = new mongoose.Schema(
         return !this.isGoogleUser;
       },
       unique: true,
-      sparse: true, // ✅ This makes `unique` ignore null/missing values
-    }, // Only required if it's not a Google user
+      sparse: true,
+      default: undefined,
+    },
     role: {
       type: String,
       enum: ["seller", "buyer", "admin"],
@@ -38,7 +33,7 @@ const userSchema = new mongoose.Schema(
     },
     isGoogleUser: { type: Boolean, default: false },
     isVerified: { type: Boolean, default: false },
-    profileImg: { type: String, required: true },
+    profileImg: { type: String, required: false },
   },
   { timestamps: true }
 );
