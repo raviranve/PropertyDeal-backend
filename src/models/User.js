@@ -13,15 +13,11 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: function () {
-        return !this.isGoogleUser;
-      },
-    }, // Only required if it's not a Google user
+      required: true,
+    },
     mobile: {
       type: String,
-      required: function () {
-        return !this.isGoogleUser;
-      },
+      required: true,
       unique: true,
       sparse: true,
       default: undefined,
@@ -32,7 +28,6 @@ const userSchema = new mongoose.Schema(
       default: "buyer",
     },
     isGoogleUser: { type: Boolean, default: false },
-    isVerified: { type: Boolean, default: false },
     profileImg: { type: String, required: false },
   },
   { timestamps: true }

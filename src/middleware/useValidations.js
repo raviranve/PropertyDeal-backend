@@ -35,12 +35,6 @@ const validateSignup = [
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage("Name should contain only alphabets and spaces"),
 
-  body("role")
-    .trim()
-    .customSanitizer((value) => value.toLowerCase())
-    .isIn(["admin", "seller", "buyer"])
-    .withMessage("Role must be one of (admin, buyer, seller)"),
-
   body("email")
     .trim()
     .notEmpty()
@@ -196,7 +190,6 @@ const validateBooking = [
     .matches(/^[0-9]{10}$/)
     .withMessage("Mobile number must be 10 digits"),
   body("propertyId").notEmpty().withMessage("Property ID is required"),
-  body("dateTime").isISO8601().withMessage("Invalid date format"),
   body("message").optional().isString(),
   handleValidationErrors,
 ];

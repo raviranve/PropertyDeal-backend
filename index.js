@@ -16,17 +16,6 @@ const cityRoutes = require("./src/routes/CityRoutes");
 const categoryRoutes = require("./src/routes/CategoryRoutes");
 const viewerRoutes = require("./src/routes/ViewersRoutes");
 
-const http = require("http");
-const server = http.createServer(app);
-const { Server } = require("socket.io");
-
-const io = new Server(server, {
-  cors: {
-    origin: "*", // Update with frontend URL
-    credentials: true,
-  },
-});
-
 // Middleware for parsing JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
@@ -41,57 +30,6 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Connect to Database
 connectdb();
-
-// Store active users (userId -> socketId)
-const activeUsers = new Map();
-
-// ✅ Socket.io connection
-io.on("connection", (socket) => {
-  console.log("🟢 New Client Connected:", socket.id);
-
-  // Handle new user joining
-  socket.on("userConnected", (username) => {
-    io.emit("userJoined", { message: `${username} has joined the website! `});
-  });
-
-  // 
-  socket.on('message', (data) => {
-    console.log('Message received:', data);
-    io.emit('message', data); // Broadcast message to all users
-  });
-
- 
-  // Handle user joining with userId
-  socket.on("join", (userId) => {
-    if (userId) {
-      activeUsers.set(userId, socket.id);
-      console.log(`User joined: ${userId} (Socket ID: ${socket.id})`);
-    }
-  });
-
-  // Handle user disconnect
-  socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
-
-    // Remove user from activeUsers map
-    for (const [userId, socketId] of activeUsers.entries()) {
-      if (socketId === socket.id) {
-        activeUsers.delete(userId);
-        console.log(`User left: ${userId}`);
-        break;
-      }
-    }
-  });
-
-  // Handle errors in socket connection
-  socket.on("error", (err) => {
-    console.error("Socket Error:", err);
-  });
-});
-
-// ✅ Make io available globally
-app.set("socketio", io);
-
 
 app.use("/api/auth", userRoutes);
 app.use("/api/properties", propertyRoutes);
@@ -114,6 +52,6 @@ app.use((err, req, res, next) => {
 
 // ✅ Start Server
 const port = process.env.PORT || 3000;
-server.listen(port, () => {
+app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });

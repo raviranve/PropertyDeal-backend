@@ -1,28 +1,19 @@
 const Booking = require("../models/Booking");
 const { success } = require("../utils/responseHandler");
-const sendNotification = require("../utils/sendNotification");
 
 exports.createBooking = async (req, res) => {
   try {
-    const { name, mobile, propertyId, userId, dateTime, message } = req.body;
+    const { name, mobile, propertyId, userId, message } = req.body;
 
     const newBooking = new Booking({
       name,
       mobile,
       propertyId,
       userId,
-      dateTime,
       message,
     });
     await newBooking.save();
 
-    // Get io instance from app
-    const io = req.app.get("socketio");
-    // Emit the booking creation event to all connected clients
-    sendNotification(io, "newBookingNotification", {
-      message: `${name} booked the property`,
-      data: newBooking,
-    });
     res.status(201).json({
       status: true,
       message: "Booking created successfully",
@@ -38,13 +29,30 @@ exports.createBooking = async (req, res) => {
 // Get All Bookings with Pagination
 exports.getAllBookings = async (req, res) => {
   try {
-    let { page, limit } = req.query;
+    let { page, limit, status, name } = req.query;
+
+    let filter = {};
+
+    // 📌 Filter by property type
+    if (status) filter.status = status;
+    // 📌 Filter by name
+    if (name) {
+      const regex = new RegExp(name, "i");
+      filter.name = regex;
+    }
 
     page = parseInt(page);
     limit = parseInt(limit);
 
-    const totalBookings = await Booking.countDocuments();
-    const bookings = await Booking.find()
+    const totalBookings = await Booking.countDocuments(filter);
+    const totalConfirmedBookings = await Booking.countDocuments({
+      status: "confirmed",
+    });
+    const totalPendingBookings = await Booking.countDocuments({
+      status: "pending",
+    });
+
+    const bookings = await Booking.find(filter)
       .populate("propertyId")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -54,6 +62,8 @@ exports.getAllBookings = async (req, res) => {
       message: "Bookings fetched successfully",
       data: bookings,
       totalBookings,
+      totalConfirmedBookings,
+      totalPendingBookings,
       currentPage: page,
       totalPages: Math.ceil(totalBookings / limit),
       hasNextPage: page * limit < totalBookings,
@@ -92,11 +102,11 @@ exports.getBookingById = async (req, res) => {
 // Update Booking with Validation
 exports.updateBooking = async (req, res) => {
   try {
-    const { name, mobile, propertyId, dateTime, message, status } = req.body;
+    const { name, mobile, propertyId, message, status } = req.body;
 
     const updatedBooking = await Booking.findByIdAndUpdate(
       req.params.id,
-      { name, mobile, propertyId, dateTime, message, status },
+      { name, mobile, propertyId, message, status },
       { new: true, runValidators: true }
     );
 
@@ -181,8 +191,8 @@ exports.getTotalRevenue = async (req, res) => {
       {
         $group: {
           _id: {
-            month: { $month: "$dateTime" },
-            year: { $year: "$dateTime" },
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" },
           },
           totalRevenue: { $sum: "$property.price" },
         },

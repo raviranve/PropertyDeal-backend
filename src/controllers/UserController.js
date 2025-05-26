@@ -6,11 +6,11 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const sendEmail = require("../utils/sendEmail");
 const Otp = require("../models/Otp");
 const RefreshToken = require("../models/RefreshToken");
+const { success } = require("../utils/responseHandler");
 
 // Create User
 exports.signup = async (req, res) => {
   try {
-    console.log(req.body);
     let { fullname, email, password, mobile, role, profileImg } = req.body;
 
     profileImg = req.file ? req.file.path : null;
@@ -49,7 +49,6 @@ exports.signup = async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         mobile: newUser.mobile,
-        isVerified: newUser.isVerified,
         isGoogleUser: newUser.isGoogleUser,
       },
     });
@@ -64,84 +63,10 @@ exports.signup = async (req, res) => {
   }
 };
 
-exports.verifyOTP = async (req, res) => {
-  try {
-    const { email, otp_number, otp_type } = req.body;
-
-    // Find the user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "User not found.",
-        error: { message: "OTP verification failed" },
-      });
-    }
-
-    if (otp_type === "verification" && user.isVerified) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "User already verified",
-        error: { message: "User already verified, OTP verification failed" },
-      });
-    }
-
-    // Find the latest OTP for the given email
-    const latestOtp = await Otp.findOne({ email })
-      .sort({ createdAt: -1 })
-      .limit(1);
-    if (!latestOtp) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "OTP not found.",
-        error: { message: "OTP verification failed" },
-      });
-    }
-
-    // Check if OTP matches
-    if (latestOtp.otp_number !== otp_number) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Invalid OTP.",
-        error: { message: "OTP verification failed" },
-      });
-    }
-
-    // Check if OTP is expired
-    const currentTime = new Date();
-    if (latestOtp.expiresAt < currentTime) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "OTP has expired.",
-        error: { message: "OTP verification failed" },
-      });
-    }
-
-    // Delete OTP after successful verification
-    await Otp.deleteMany({ email });
-
-    // Update user as verified
-    user.isVerified = true;
-    await user.save();
-
-    return res.status(200).json({
-      status: "Success",
-      message: "OTP verified successfully",
-      data: { otp_verified: true },
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "Failed",
-      message: error.message,
-      error: { message: "OTP verification failed" },
-    });
-  }
-};
-
 //  **generate Otp**
 exports.generateOtp = async (req, res) => {
   try {
-    const { email, otp_type } = req.body;
+    const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({
@@ -153,13 +78,6 @@ exports.generateOtp = async (req, res) => {
       });
     }
 
-    if (otp_type === "varification" && user.isVerified) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "User already verified",
-        error: { message: "OTP not send due to already verified" },
-      });
-    }
     // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
@@ -175,35 +93,15 @@ exports.generateOtp = async (req, res) => {
       expiresAt,
     });
 
-    if (otp_type === "varification") {
-      return res.status(200).json({
-        status: "Success",
-        message: "OTP sent successfully.",
-        data: {
-          otp: otp,
-          otp_send: true,
-          email: email,
-        },
-      });
-    } else if (otp_type === "forgot") {
-      return res.status(200).json({
-        status: "Success",
-        message: "Password reset OTP sent successfully.",
-        data: {
-          otp: otp,
-          otp_send: true,
-          email: email,
-        },
-      });
-    } else {
-      return res.status(400).json({
-        status: "Failed",
-        message: "OTP not send due to techinical error",
-        error: {
-          message: "Invalid OTP type",
-        },
-      });
-    }
+    return res.status(200).json({
+      status: "Success",
+      message: "Password reset OTP sent successfully.",
+      data: {
+        otp: otp,
+        otp_send: true,
+        email: email,
+      },
+    });
   } catch (error) {
     res.status(500).json({
       status: "Failed",
@@ -286,7 +184,6 @@ exports.login = async (req, res) => {
         role: user.role,
         accessToken,
         refreshToken,
-        isVerified: user.isVerified,
         mobile: user.mobile,
         profileImg: user.profileImg
           ? `${req.protocol}://${req.get("host")}/${user.profileImg}`
@@ -307,7 +204,7 @@ exports.login = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    const { email, otp_type, newPassword } = req.body;
+    const { email, newPassword, otp_number } = req.body;
 
     // Find the user
     const user = await User.findOne({ email });
@@ -318,18 +215,27 @@ exports.resetPassword = async (req, res) => {
         error: { message: "Password reset failed" },
       });
     }
-    if (user.isVerified) {
-      user.password = newPassword;
-      await user.save();
-      res
-        .status(200)
-        .json({ status: "success", message: "Password reset successfully" });
-    } else {
+
+    // Find the OTP
+    const otpEntry = await Otp.findOne({
+      userId: user._id,
+      otp_number,
+      expiresAt: { $gt: new Date() }, // Check if OTP is still valid
+    });
+
+    if (!otpEntry) {
       return res.status(400).json({
         status: "Failed",
-        message: "OTP must be verified before resetting the password",
+        message: "Invalid or expired OTP",
+        error: { message: "Password reset failed" },
       });
     }
+
+    user.password = newPassword;
+    await user.save();
+    res
+      .status(200)
+      .json({ status: "success", message: "Password reset successfully" });
   } catch (error) {
     res.status(500).json({
       status: "Failed",
@@ -342,7 +248,7 @@ exports.resetPassword = async (req, res) => {
 //  **Google Auth**
 exports.googleAuth = async (req, res) => {
   try {
-    const { tokenId, role } = req.body;
+    const { tokenId } = req.body;
 
     const ticket = await client.verifyIdToken({
       idToken: tokenId,
@@ -355,35 +261,10 @@ exports.googleAuth = async (req, res) => {
 
     // 🆕 New user
     if (!user) {
-      if (!role) {
-        return res.status(400).json({
-          error: true,
-          message: "New user detected. Please select a valid role.",
-        });
-      }
-
-      user = await User.create({
-        fullname: name,
-        googleId,
-        email,
-        role: role.toLowerCase(),
-        isVerified: true,
-        isGoogleUser: true,
-        profileImg: picture,
+      return res.status(400).json({
+        error: true,
+        message: "Please create account before login in with Google",
       });
-    } else {
-      // Existing user but no role (edge case)
-      if (!user.role) {
-        if (!role) {
-          return res.status(400).json({
-            error: true,
-            message: "Please select a role to complete google login.",
-          });
-        }
-        user.role = role.toLowerCase();
-        await user.save();
-      }
-      // ✅ If user has a role already, ignore role in request
     }
 
     // Generate tokens
@@ -409,20 +290,24 @@ exports.googleAuth = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({
-      message: "Google login successful",
-      data: {
-        accessToken,
-        refreshToken,
-        isVerified: user.isVerified,
-        isGoogleUser: user.isGoogleUser,
-        role: user.role,
-        userId: user._id,
-        email: user.email,
-      },
-    });
+    const data = {
+      accessToken,
+      refreshToken,
+      userId: user._id,
+      full_name: user.fullname,
+      email: user.email,
+      role: user.role,
+      accessToken,
+      refreshToken,
+      mobile: user.mobile,
+      profileImg: user.profileImg
+        ? `${req.protocol}://${req.get("host")}/${user.profileImg}`
+        : null,
+      isGoogleUser: true,
+    };
+
+    success(res, data, "Google login successful");
   } catch (error) {
-    console.error("Google login error:", error);
     res.status(500).json({ error: true, message: error.message });
   }
 };

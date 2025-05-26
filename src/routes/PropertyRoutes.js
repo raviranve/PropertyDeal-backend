@@ -20,11 +20,7 @@ router.post(
   PropertyController.createProperty
 );
 router.get("/get-properties", PropertyController.getAllProperties);
-router.get(
-  "/get-property/:id",
-  accessTokenVerify,
-  PropertyController.getPropertyById
-);
+router.get("/get-property/:id", PropertyController.getPropertyById);
 router.patch(
   "/update-property/:id",
   upload.array("propertyImages", 5),

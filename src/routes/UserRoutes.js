@@ -27,9 +27,6 @@ router.post("/login", validateLogin, userController.login);
 router.post("/google-auth", userController.googleAuth);
 router.post("/generate-otp", userController.generateOtp);
 
-// Verify OTP
-router.post("/verify-otp", validateVerifyOTP, userController.verifyOTP);
-
 // Reset Password
 router.post(
   "/reset-password",
