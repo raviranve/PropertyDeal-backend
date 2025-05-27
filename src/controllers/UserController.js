@@ -5,7 +5,6 @@ const { OAuth2Client } = require("google-auth-library");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const sendEmail = require("../utils/sendEmail");
 const Otp = require("../models/Otp");
-const RefreshToken = require("../models/RefreshToken");
 const { success } = require("../utils/responseHandler");
 const { error } = require("../utils/responseHandler");
 
@@ -135,44 +134,14 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if refresh token already exists and is still valid
-    let refreshTokenEntry = await RefreshToken.findOne({ userId: user._id });
-    let refreshToken;
-
-    const now = new Date();
-    if (refreshTokenEntry && refreshTokenEntry.expiresAt > now) {
-      refreshToken = refreshTokenEntry.token;
-    } else {
-      // Remove old token if  and create a new one and update with token key in db
-      if (refreshTokenEntry) {
-        await RefreshToken.deleteOne({ userId: user._id });
-      }
-
-      const tokens = user.generateAuthToken(); // ✅ generate once
-      refreshToken = tokens.refreshToken;
-
-      refreshTokenEntry = new RefreshToken({
-        token: refreshToken,
-        userId: user._id,
-        expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      });
-      await refreshTokenEntry.save();
-    }
     // Set tokens in HTTP-only cookies
     const tokens = user.generateAuthToken();
     const accessToken = tokens.accessToken;
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 3 * 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: true, // Required for cross-origin cookies on HTTPS
+      sameSite: "None", // Required for cross-site cookies
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     res.status(200).json({
@@ -184,7 +153,6 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         accessToken,
-        refreshToken,
         mobile: user.mobile,
         profileImg: user.profileImg
           ? `${req.protocol}://${req.get("host")}/${user.profileImg}`
@@ -269,37 +237,22 @@ exports.googleAuth = async (req, res) => {
     }
 
     // Generate tokens
-    const { accessToken, refreshToken } = user.generateAuthToken();
-
-    await new RefreshToken({
-      token: refreshToken,
-      userId: user._id,
-      expiresAt: 7 * 24 * 60 * 60 * 1000,
-    }).save();
+    const { accessToken } = user.generateAuthToken();
 
     res.cookie("accessToken", accessToken, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: true, // Required for cross-origin cookies on HTTPS
+      sameSite: "None", // Required for cross-site cookies
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     const data = {
       accessToken,
-      refreshToken,
       userId: user._id,
       full_name: user.fullname,
       email: user.email,
       role: user.role,
       accessToken,
-      refreshToken,
       mobile: user.mobile,
       profileImg: user.profileImg
         ? `${req.protocol}://${req.get("host")}/${user.profileImg}`

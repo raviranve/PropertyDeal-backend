@@ -46,17 +46,9 @@ userSchema.methods.generateAuthToken = function () {
   const accessToken = jwt.sign(
     { id: this._id, role: this.role },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "5d" }
+    { expiresIn: "1d" }
   );
-  const refreshToken = jwt.sign(
-    {
-      id: this.id,
-      role: this.role,
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" }
-  );
-  return { accessToken, refreshToken };
+  return { accessToken };
 };
 
 module.exports = mongoose.model("User", userSchema);
