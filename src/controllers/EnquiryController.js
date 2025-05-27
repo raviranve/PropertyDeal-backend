@@ -31,11 +31,22 @@ exports.createEnquiry = async (req, res) => {
 // ✅ GET - Fetch all enquiries
 exports.getAllEnquiries = async (req, res) => {
   try {
-    let { page, limit } = req.query; // Default page = 1, limit = 10
+    let { page, limit, search } = req.query;
+
+    let filter = {};
+    // 📌 Search by fullname or email
+    if (search) {
+      const regex = new RegExp(search, "i");
+      filter.$or = [
+        { fullname: { $regex: regex } },
+        { email: { $regex: regex } },
+      ];
+    }
+
     page = parseInt(page);
     limit = parseInt(limit);
-    const totalEnquiries = await Enquiry.countDocuments();
-    const enquiries = await Enquiry.find()
+    const totalEnquiries = await Enquiry.countDocuments(filter);
+    const enquiries = await Enquiry.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);

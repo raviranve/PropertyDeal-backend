@@ -41,11 +41,7 @@ router.get(
   authorizeRoles("admin", "seller"),
   userController.getUsers
 );
-router.get(
-  "/users/:id",
-  accessTokenVerify,
-  userController.getUserById
-);
+router.get("/users/:id", accessTokenVerify, userController.getUserById);
 router.patch(
   "/users/:id",
   accessTokenVerify,
@@ -63,5 +59,12 @@ router.post(
   accessTokenVerify,
   notificationController.sendSmsToMobile
 ); // Send SMS notification
+
+router.patch(
+  "/update/user-role",
+  accessTokenVerify,
+  authorizeRoles("admin"),
+  userController.updateUserRole
+);
 
 module.exports = router;

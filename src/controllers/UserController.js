@@ -7,6 +7,7 @@ const sendEmail = require("../utils/sendEmail");
 const Otp = require("../models/Otp");
 const RefreshToken = require("../models/RefreshToken");
 const { success } = require("../utils/responseHandler");
+const { error } = require("../utils/responseHandler");
 
 // Create User
 exports.signup = async (req, res) => {
@@ -315,11 +316,23 @@ exports.googleAuth = async (req, res) => {
 // Get All Users
 exports.getUsers = async (req, res) => {
   try {
-    let { page, limit } = req.query; // Default page = 1, limit = 10
+    let { page, limit, search, role } = req.query;
+
+    let filter = {};
+    // 📌 Filter by role
+    if (role) {
+      filter.role = role;
+    }
+    // 📌 Filter by search term
+    if (search) {
+      const regex = new RegExp(search, "i");
+      filter.$or = [{ fullname: regex }, { email: regex }, { mobile: regex }];
+    }
+
     page = parseInt(page);
     limit = parseInt(limit);
-    const totalUsers = await User.countDocuments();
-    const users = await User.find()
+    const totalUsers = await User.countDocuments(filter);
+    const users = await User.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
@@ -410,5 +423,30 @@ exports.deleteUser = async (req, res) => {
       message: error.message,
       data: null,
     });
+  }
+};
+
+// Switch User Role
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { userId, newRole } = req.body;
+
+    // Validate new role
+    if (!["seller", "buyer", "admin"].includes(newRole)) {
+      return error(res, new Error("Invalid role"), 400);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { role: newRole },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return error(res, new Error("User not found"), 404);
+    }
+    success(res, updatedUser, "User role updated successfully");
+  } catch (err) {
+    error(res, err, 500);
   }
 };

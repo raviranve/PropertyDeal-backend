@@ -28,11 +28,26 @@ exports.createCategory = async (req, res) => {
 
 exports.getAllCategories = async (req, res) => {
   try {
-    let { page, limit } = req.query; // Default page = 1, limit = 10
+    let { page, limit, status, search } = req.query;
+
+    let filter = {};
+
+    // 📌 Filter by property type
+    if (status) filter.status = status;
+    // 📌 Search by category name
+    if (search) {
+      const regex = new RegExp(search, "i");
+      filter.$or = [
+        { categoryName: { $regex: regex } },
+        { "subCategories.name": { $regex: regex } },
+      ];
+    }
+    console.log(search, filter);
+
     page = parseInt(page);
     limit = parseInt(limit);
-    const totalCategories = await Category.countDocuments();
-    const categories = await Category.find()
+    const totalCategories = await Category.countDocuments(filter);
+    const categories = await Category.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
@@ -64,24 +79,6 @@ exports.getCategoryById = async (req, res) => {
     error(res, err);
   }
 };
-
-// exports.updateCategory = async (req, res) => {
-//   try {
-//     const updated = await Category.findByIdAndUpdate(req.params.id, req.body, {
-//       new: true,
-//     });
-//     if (!updated) return error(res, new Error("Category not found"), 404);
-//     // Check if the category name already exists
-//     const existing = await Category.findOne({
-//       _id: { $ne: req.params.id },
-//       categoryName: { $regex: `^${req.body.categoryName}$`, $options: 'i' }
-//     });
-
-//     success(res, updated, "Category Updated Successfully");
-//   } catch (err) {
-//     error(res, err, 400);
-//   }
-// };
 
 exports.updateCategory = async (req, res) => {
   try {
