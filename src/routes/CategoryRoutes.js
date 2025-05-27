@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/categoryController");
+const controller = require("../controllers/CategoryController");
 const { authorizeRoles, accessTokenVerify } = require("../middleware/authMiddleware");
 
 router.post("/create-category", accessTokenVerify, controller.createCategory);
