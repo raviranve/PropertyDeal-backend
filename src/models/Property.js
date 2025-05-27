@@ -56,7 +56,7 @@ const propertySchema = new mongoose.Schema({
   averageRating: { type: Number, default: 0 },
 
   postedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 // Create model
 const Property = mongoose.model("Property", propertySchema);
