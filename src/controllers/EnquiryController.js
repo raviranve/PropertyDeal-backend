@@ -3,15 +3,13 @@ const Enquiry = require("../models/Enquiry");
 // ✅ POST - Create a new enquiry
 exports.createEnquiry = async (req, res) => {
   try {
-    const { fullname, email, mobile, message, propertyId } = req.body;
-console.log(fullname, email, mobile, message, propertyId);
-
+    const { fullname, email, mobile, message } = req.body;
+    console.log("Enquiry Data:", req.body);
     const newEnquiry = new Enquiry({
       fullname,
       email,
       mobile,
       message,
-      propertyId,
     });
 
     await newEnquiry.save();
@@ -33,17 +31,40 @@ console.log(fullname, email, mobile, message, propertyId);
 // ✅ GET - Fetch all enquiries
 exports.getAllEnquiries = async (req, res) => {
   try {
-    const enquiries = await Enquiry.find().populate("propertyId");
+    let { page, limit, search } = req.query;
+
+    let filter = {};
+    // 📌 Search by fullname or email
+    if (search) {
+      const regex = new RegExp(search, "i");
+      filter.$or = [
+        { fullname: { $regex: regex } },
+        { email: { $regex: regex } },
+      ];
+    }
+
+    page = parseInt(page);
+    limit = parseInt(limit);
+    const totalEnquiries = await Enquiry.countDocuments(filter);
+    const enquiries = await Enquiry.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
     res.status(200).json({
       status: true,
       message: "Enquiries fetched successfully",
       data: enquiries,
+      totalEnquiries,
+      currentPage: page,
+      totalPages: Math.ceil(totalEnquiries / limit),
+      hasNextPage: page * limit < totalEnquiries,
+      hasPrevPage: page > 1,
     });
   } catch (error) {
     res.status(500).json({
       status: false,
-      message: "Internal Server Error",
-      error: error.message,
+      message: error.message,
+      data: null,
     });
   }
 };
