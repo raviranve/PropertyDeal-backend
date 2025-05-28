@@ -22,8 +22,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 const corsOptions = {
-  origin: "https://property-deal-frontend-rf5w.vercel.app",
-  credentials: true, // Allow cookies
+   origin: [
+    "https://property-deal-frontend-rf5w.vercel.app",
+    "http://localhost:5173",                       
+  ],
+  credentials: true,
 };
 app.use(cors(corsOptions));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
