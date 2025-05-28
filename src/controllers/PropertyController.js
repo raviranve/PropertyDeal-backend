@@ -48,7 +48,10 @@ const createProperty = async (req, res) => {
     const facilityList = facilities?.split(",").map((f) => f.trim()) || [];
     const subCategories = subCategory?.split(",").map((f) => f.trim()) || [];
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    // const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl =
+      process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
+
     const imageUrls =
       req.files?.map((file) => `${baseUrl}/uploads/${file.filename}`) || [];
 
@@ -236,7 +239,10 @@ const updateProperty = async (req, res) => {
       });
     });
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    // const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl =
+      process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
+
     const uploadedImages = req.files.map(
       (file) => `${baseUrl}/uploads/${file.filename}`
     );

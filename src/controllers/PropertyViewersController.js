@@ -9,24 +9,6 @@ const getClientIp = (req) => {
   return forwarded ? forwarded.split(",")[0].trim() : req.socket.remoteAddress;
 };
 
-// exports.trackViewers = async (req, res) => {
-//   try {
-//     const ipAddress =
-//       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-
-//     const existing = await View.findOne({ ipAddress });
-
-//     if (!existing) {
-//       await View.create({ ipAddress });
-//       sendSms("New Visitor tracked from Website", `IP: ${ipAddress}`);
-//     }
-
-//     res.status(200).json({ message: "View tracked" });
-//   } catch (err) {
-//     res.status(500).json({ message: "Error tracking view", error: err });
-//   }
-// };
-
 exports.trackViewers = async (req, res) => {
   try {
     const ipAddress = getClientIp(req);
