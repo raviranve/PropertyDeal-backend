@@ -220,7 +220,10 @@ const updateProperty = async (req, res) => {
         .json({ status: "error", message: "Category not found" });
     }
 
-    const existingImages = req.body.existingImages || [];
+    const existingImagesRaw = req.body.existingImages || [];
+    const existingImages = Array.isArray(existingImagesRaw)
+      ? existingImagesRaw
+      : [existingImagesRaw];
 
     // ✅ Delete only the removed images
     const removedImages = property.propertyImages.filter(
