@@ -1,13 +1,23 @@
+// middleware/upload.js
 const multer = require("multer");
-const path = require("path");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
+require("dotenv").config();
 
-// Storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Store images in the "uploads" folder
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); // Unique filename
+// Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Cloudinary storage configuration
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "uploads", // Folder name in Cloudinary
+    allowed_formats: ["jpeg", "png", "jpg"], // Optional - not strictly required
+    transformation: [{ width: 800, height: 800, crop: "limit" }], // Optional
   },
 });
 
@@ -17,15 +27,18 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPEG, PNG, and JPG images are allowed"), false);
+    const error = new Error("Only JPEG, PNG, and JPG images are allowed");
+    error.name = "INVALID_FILE_TYPE"; // Custom error type
+    cb(error, false);
   }
 };
+
 
 // Upload middleware
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB file size limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
 });
 
 module.exports = upload;

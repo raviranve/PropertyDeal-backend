@@ -5,8 +5,9 @@ const path = require("path");
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const axios = require("axios");
 const Category = require("../models/Category");
-// ✅ CREATE PROPERTY
+const cloudinary = require("cloudinary").v2;
 
+// ✅ CREATE PROPERTY
 const createProperty = async (req, res) => {
   try {
     const {
@@ -48,12 +49,11 @@ const createProperty = async (req, res) => {
     const facilityList = facilities?.split(",").map((f) => f.trim()) || [];
     const subCategories = subCategory?.split(",").map((f) => f.trim()) || [];
 
-    // const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const baseUrl =
-      process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
+    // const baseUrl =
+    //   process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
 
-    const imageUrls =
-      req.files?.map((file) => `${baseUrl}/uploads/${file.filename}`) || [];
+    // Cloudinary image URLs
+    const imageUrls = req.files?.map((file) => file.path) || [];
 
     const newProperty = new Property({
       title,
@@ -212,7 +212,6 @@ const updateProperty = async (req, res) => {
         .json({ status: "error", message: "City not found" });
     }
 
-    // Validate category
     const categoryData = await Category.findById(category);
     if (!categoryData) {
       return res
@@ -225,36 +224,30 @@ const updateProperty = async (req, res) => {
       ? existingImagesRaw
       : [existingImagesRaw];
 
-    // ✅ Delete only the removed images
+    // ✅ Delete removed images from Cloudinary
     const removedImages = property.propertyImages.filter(
       (url) => !existingImages.includes(url)
     );
 
-    removedImages.forEach((url) => {
-      const filename = url.split("/").pop();
-      const imagePath = path.join(__dirname, "..", "..", "uploads", filename);
-      fs.unlink(imagePath, (err) => {
-        if (err && err.code !== "ENOENT") {
-          console.warn("Failed to delete image:", filename, err.message);
+    for (const imageUrl of removedImages) {
+      const parts = imageUrl.split("/");
+      const filenameWithExt = parts[parts.length - 1];
+      const publicId = `uploads/${filenameWithExt.split(".")[0]}`;
+
+      await cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) {
+          console.warn("Failed to delete Cloudinary image:", publicId, error.message);
         } else {
-          console.log("Deleted image:", filename);
+          console.log("Deleted Cloudinary image:", publicId);
         }
       });
-    });
+    }
 
-    // const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const baseUrl =
-      process.env.SERVER_URL || `${req.protocol}://${req.get("host")}`;
+    const uploadedImages = req.files?.map((file) => file.path) || [];
 
-    const uploadedImages = req.files.map(
-      (file) => `${baseUrl}/uploads/${file.filename}`
-    );
-
-    // Process facilities and images
     const subCategories = subCategory?.split(",").map((f) => f.trim()) || [];
     const facilitiesArr = facilities.split(",").map((f) => f.trim());
 
-    // Update fields
     property.title = title;
     property.description = description;
     property.price = price;
@@ -272,23 +265,26 @@ const updateProperty = async (req, res) => {
       lng,
     };
     property.category = category;
-    property.subCategory = subCategories; // Save as array
+    property.subCategory = subCategories;
 
     const updated = await property.save();
+
     res.status(200).json({
       status: "success",
-      message: "Property updated Successfully",
+      message: "Property updated successfully",
       data: updated,
     });
   } catch (err) {
+    console.error("Error updating property:", err);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
 
-// ✅ DELETE PROPERTY
 
+// ✅ DELETE PROPERTY
 const deleteProperty = async (req, res) => {
   const { id } = req.params;
+
   if (!id) {
     return res
       .status(400)
@@ -304,29 +300,34 @@ const deleteProperty = async (req, res) => {
         .json({ status: "error", message: "Property not found" });
     }
 
+    // Delete images from Cloudinary
     if (Array.isArray(deletedProperty.propertyImages)) {
-      deletedProperty.propertyImages.forEach((imageUrl) => {
-        const filename = imageUrl.split("/").pop();
+      for (const imageUrl of deletedProperty.propertyImages) {
+        // Extract public_id from the Cloudinary URL
+        const parts = imageUrl.split("/");
+        const filenameWithExt = parts[parts.length - 1]; // e.g., "abc123.jpg"
+        const publicId = `uploads/${filenameWithExt.split(".")[0]}`; // e.g., "uploads/abc123"
 
-        const imagePath = path.join(__dirname, "..", "..", "uploads", filename);
-        fs.unlink(imagePath, (err) => {
-          if (err) {
-            console.warn("Failed to delete image:", filename, err.message);
+        await cloudinary.uploader.destroy(publicId, (error, result) => {
+          if (error) {
+            console.warn("Failed to delete Cloudinary image:", publicId, error.message);
           } else {
-            console.log("Image deleted:", filename);
+            console.log("Cloudinary image deleted:", publicId);
           }
         });
-      });
+      }
     }
 
-    res
-      .status(200)
-      .json({ status: "success", message: "Property deleted successfully" });
+    res.status(200).json({
+      status: "success",
+      message: "Property and associated images deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting property:", error);
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
+
 
 // ✅ UPDATE PROPERTY STATUS
 const updatePropertyStatus = async (req, res) => {
