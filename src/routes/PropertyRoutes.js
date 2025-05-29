@@ -10,7 +10,6 @@ const {
   validateProperty,
   validateUpdateProperty,
 } = require("../middleware/useValidations");
-const handleMulterErrors = require("../middleware/multerValidation");
 
 router.post(
   "/create-properties",
@@ -25,7 +24,6 @@ router.get("/get-properties", PropertyController.getAllProperties);
 router.get("/get-property/:id", PropertyController.getPropertyById);
 router.patch(
   "/update-property/:id",
-  // handleMulterErrors,
   upload.array("propertyImages", 5),
   accessTokenVerify,
   authorizeRoles("admin", "seller"),
