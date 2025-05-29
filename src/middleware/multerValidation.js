@@ -3,9 +3,8 @@ const multer = require("multer");
 const upload = require("./uploadFile");
 
 const handleMulterErrors = (req, res, next) => {
-  const uploader = upload.array("propertyImages", 5); // max 5 files
 
-  uploader(req, res, function (err) {
+  upload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res
