@@ -17,8 +17,8 @@ const categoryRoutes = require("./src/routes/CategoryRoutes");
 const viewerRoutes = require("./src/routes/ViewersRoutes");
 
 // Middleware for parsing JSON and URL-encoded data
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" })); 
 app.use(cookieParser());
 
 const corsOptions = {
