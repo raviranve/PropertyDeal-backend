@@ -12,20 +12,9 @@ const handleMulterErrors = (req, res, next) => {
           .status(400)
           .json({ status: "error", message: "File size exceeds 20MB" });
       }
-
-      if (err.code === "LIMIT_UNEXPECTED_FILE") {
-        return res.status(400).json({
-          status: "error",
-          message: "Too many files: You can only upload up to 5 images.",
-        });
-      }
-
-      return res.status(400).json({ status: "error", message: err.message });
     } else if (err) {
       if (err.name === "INVALID_FILE_TYPE") {
-        return res
-          .status(400)
-          .json({ status: "error", message: err.message });
+        return res.status(400).json({ status: "error", message: err.message });
       }
 
       return res.status(400).json({
