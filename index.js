@@ -23,8 +23,8 @@ app.use(cookieParser());
 
 const corsOptions = {
    origin: [
-    "https://property-deal-frontend-rf5w.vercel.app",
-    "http://localhost:5173",                       
+    "https://property-deal-frontend-zk7w-332mrhxvl-goutamgurjar09s-projects.vercel.app",
+    "http://localhost:5173",            
   ],
   credentials: true,
 };
