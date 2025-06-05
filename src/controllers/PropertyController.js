@@ -22,11 +22,14 @@ const createProperty = async (req, res) => {
       category, // category ObjectId
       subCategory, // array of subcategory names
       ["owner.name"]: ownerName,
+      ["owner.id"]: ownerId,
       ["location.city"]: cityName,
       ["location.locality"]: locality,
       ["location.lat"]: lat,
       ["location.lng"]: lng,
     } = req.body;
+
+    console.log(ownerId, "ownerId")
 
     // console.log(req.body);
     // Validate city
@@ -73,9 +76,10 @@ const createProperty = async (req, res) => {
       },
       owner: {
         name: ownerName,
+        id: ownerId,
       },
       category,
-      subCategory: subCategories, // Save as array
+      subCategory: subCategories,
     });
 
     const property = await newProperty.save();
@@ -190,6 +194,7 @@ const updateProperty = async (req, res) => {
       category,
       subCategory,
       ["owner.name"]: ownerName,
+      ["owner.id"]: ownerId,
       ["location.city"]: cityName,
       ["location.locality"]: locality,
       ["location.lat"]: lat,
@@ -198,6 +203,7 @@ const updateProperty = async (req, res) => {
 
     const { id } = req.params;
 
+    console.log(ownerId, "ownerId")
     const property = await Property.findById(id);
     if (!property) {
       return res
@@ -258,6 +264,7 @@ const updateProperty = async (req, res) => {
     property.facilities = facilitiesArr;
     property.propertyImages = [...existingImages, ...uploadedImages];
     property.owner.name = ownerName;
+    property.owner.id = ownerId;
     property.location = {
       city: cityData._id,
       locality,

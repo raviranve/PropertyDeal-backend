@@ -33,7 +33,7 @@ const propertySchema = new mongoose.Schema({
 
   owner: {
     name: { type: String, required: true },
-    // You can add contact/email/ID here later if needed
+    id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
 
   status: {
