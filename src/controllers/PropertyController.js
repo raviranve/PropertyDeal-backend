@@ -333,7 +333,6 @@ const deleteProperty = async (req, res) => {
 const updatePropertyStatus = async (req, res) => {
   try {
     const { propertyId, status } = req.body;
-    console.log(propertyId, status);
     const updatedProperty = await Property.findByIdAndUpdate(
       propertyId,
       { status },

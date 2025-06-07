@@ -24,7 +24,6 @@ const accessTokenVerify = async (req, res, next) => {
         error: { message: "Invalid token" },
       });
     }
-    console.log("User found:", user);
     req.user = user;
     next();
   } catch (error) {

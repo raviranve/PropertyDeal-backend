@@ -44,8 +44,8 @@ router.get(
 router.get("/users/:id", accessTokenVerify, userController.getUserById);
 router.patch(
   "/users/:id",
+  upload.single("profileImg"),
   accessTokenVerify,
-  authorizeRoles("admin", "seller"),
   userController.updateUser
 );
 router.delete(

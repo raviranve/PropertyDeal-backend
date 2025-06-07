@@ -331,10 +331,20 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// Update User
 exports.updateUser = async (req, res) => {
   try {
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
+    const allowedFields = ["fullname", "email", "mobile"];
+    const updates = {};
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    });
+
+    // If a new profile image is uploaded, use its Cloudinary URL
+    if (req.file && req.file.path) {
+      updates.profileImg = req.file.path; // This is the Cloudinary URL
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, updates, {
       new: true,
     });
     if (!updatedUser)
